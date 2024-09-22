@@ -7,6 +7,8 @@ from dotenv import dotenv_values
 from flask_bcrypt import Bcrypt
 import json
 import random
+from datetime import datetime
+from api import show_api_endpoints, get_stubhub_token, get_broadway_tickets, find_cheapest_ticket
 
 config = dotenv_values(".env")
 
@@ -72,29 +74,42 @@ def root():
 #             print(e)
 #             return {"error": f"could not post user: {e}"}, 405
 
-
 @app.route('/api/shows', methods=['GET', 'POST'])
 def shows():
     if request.method == 'GET':
-        shows = [show.to_dict() for show in Show.query.all()]
-        return make_response( shows, 200 )
-    
-    elif request.method == 'POST':
-        new_show = Show(
-            name=request.json.get("name"),
-        )
+        token = get_stubhub_token("4XWc10UmncVBoHo3lT8b", "sfwKjMe6h1cApxw1Ca7ZKTsaoa2gSRov5ECYkM2pVXEvAUW0Ux0KViQZwWfI")
+        show_data = []
+        i = 0
+        for endpoint in show_api_endpoints:
+            # call the stubhub api and return the cheapest ticket
+            events_data = get_broadway_tickets(token, endpoint["link"])
+            cheapest_ticket = find_cheapest_ticket(events_data)
+            
+            # reformat date
+            start_date_str = cheapest_ticket["start_date"]
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%dT%H:%M:%S%z")
+            formatted_date = start_date.strftime("%b %-d, %Y %-I%p")
+            formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
 
-        db.session.add(new_show)
-        db.session.commit()
+            # build show info object
+            cheapest_ticket_object = {
+                "id": i,
+                "name": cheapest_ticket["name"],
+                "start_date": formatted_date,
+                "min_ticket_price": round(cheapest_ticket["min_ticket_price"]["amount"]),
+                "href": cheapest_ticket["_links"]["event:webpage"]["href"],
+                "venue_name": cheapest_ticket["_embedded"]["venue"]["name"],
+            }
+            i += 1
+
+            if cheapest_ticket_object:
+                show_data.append(cheapest_ticket_object)
+
         
-        new_show_dict = new_show.to_dict()
+        # shows_data = [show.to_dict() for show in show_data]
+        return make_response( show_data, 200 )
+    
 
-        response = make_response(
-            new_show_dict,
-            201
-        )
-
-        return response
 
 if __name__ == "__main__":
     app.run(debug=True)
