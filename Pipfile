@@ -15,9 +15,9 @@ sqlalchemy-serializer = "*"
 flask-cors = "*"
 flask-bcrypt = "*"
 python-dotenv = "*"
-psycopg2 = "*"
 flask = "*"
 flask-sqlalchemy = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
