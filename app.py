@@ -79,7 +79,7 @@ def shows():
     if request.method == 'GET':
         token = get_stubhub_token("4XWc10UmncVBoHo3lT8b", "sfwKjMe6h1cApxw1Ca7ZKTsaoa2gSRov5ECYkM2pVXEvAUW0Ux0KViQZwWfI")
         show_data = []
-        i = 0
+        i = 1
         for endpoint in show_api_endpoints:
             # call the stubhub api and return the cheapest ticket
             events_data = get_broadway_tickets(token, endpoint["link"])
