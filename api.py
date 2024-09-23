@@ -1,5 +1,7 @@
 import requests
 
+partnerize_tracking_link = "https://stubhub.prf.hn/click/camref:1100lTenp/destination:"
+
 show_api_endpoints = [
     {"name": "Hamilton", "link": "https://api.stubhub.net/catalog/categories/35042/events?exclude_parking_passes=true&latitude=40.759033203125&longitude=-73.98674774169922&max_distance_in_meters=1000"},
     {"name": "Six", "link": "https://api.stubhub.net/catalog/categories/82392/events?exclude_parking_passes=true&latitude=40.7599414&longitude=-73.98690909999999&max_distance_in_meters=1000"},
