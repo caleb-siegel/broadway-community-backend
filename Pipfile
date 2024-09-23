@@ -18,6 +18,7 @@ python-dotenv = "*"
 flask = "*"
 flask-sqlalchemy = "*"
 psycopg2-binary = "*"
+requests = "*"
 
 [dev-packages]
 
