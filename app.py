@@ -8,6 +8,7 @@ from flask_bcrypt import Bcrypt
 import json
 import random
 from datetime import datetime
+
 from api import partnerize_tracking_link, show_api_endpoints, get_stubhub_token, get_broadway_tickets, find_cheapest_ticket
 
 config = dotenv_values(".env")
@@ -86,16 +87,17 @@ def shows():
             cheapest_ticket = find_cheapest_ticket(events_data)
             
             # reformat date
-            start_date_str = cheapest_ticket["start_date"]
-            start_date = datetime.strptime(start_date_str, "%Y-%m-%dT%H:%M:%S%z")
-            formatted_date = start_date.strftime("%b %-d, %Y %-I%p")
+            start_date = cheapest_ticket["start_date"]
+            formatted_date = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
+            formatted_date = formatted_date.strftime("%a, %b %-d, %Y %-I%p")
             formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
 
             # build show info object
             cheapest_ticket_object = {
                 "id": i,
                 "name": cheapest_ticket["name"],
-                "start_date": formatted_date,
+                "start_date": start_date,
+                "formatted_date": formatted_date,
                 "min_ticket_price": round(cheapest_ticket["min_ticket_price"]["amount"]),
                 "href": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
                 "venue_name": cheapest_ticket["_embedded"]["venue"]["name"],
