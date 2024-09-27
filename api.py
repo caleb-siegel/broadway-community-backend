@@ -34,6 +34,48 @@ show_api_endpoints = [
     {"name": "Taylor Swift", "link": "https://api.stubhub.net/catalog/categories/11113/events?exclude_parking_passes=true"},
 ]
 
+show_api_endpoints2 = [
+    {"name": "Hamilton", "category_id": "35042", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Six", "category_id": "82392", "latitude": "40.7599414", "longitude": "-73.98690909999999"},
+    {"name": "& Juliet", "category_id": "127739", "latitude": "40.75594711303711", "longitude": "-73.98497772216797"},
+    {"name": "MJ", "category_id": "177138", "latitude": "40.7631716", "longitude": "-73.9845438"},
+    {"name": "The Outsiders", "category_id": "102774", "latitude": "40.75878524780273", "longitude": "-73.98772430419922"},
+    {"name": "The Book of Mormon", "category_id": "150057581", "latitude": "40.7610848", "longitude": "-73.9857178"},
+    {"name": "Wicked", "category_id": "3682", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "The Lion King", "category_id": "1534", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Hell's Kitchen", "category_id": "150087389", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Moulin Rouge", "category_id": "11874", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "The Notebook", "category_id": "430684", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Harry Potter and the Cursed Child", "category_id": "36402", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Back to the Future", "category_id": "146928", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "The Great Gatsby", "category_id": "42838", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Oh, Mary", "category_id": "150204986", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Aladdin", "category_id": "12721", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Chicago", "category_id": "14222", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Cabaret", "category_id": "4987", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Water for Elephants", "category_id": "150043364", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Elf", "category_id": "33322", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Suffs", "category_id": "429656", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Hadestown", "category_id": "101920", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+    {"name": "Taylor Swift", "category_id": "11113", "latitude": "40.759033203125", "longitude": "-73.98674774169922"},
+]
+
+def get_link(category_id, latitude=None, longitude=None, max_distance=1000):
+    # add starting point
+    link = "https://api.stubhub.net/catalog/categories/"
+    
+    # add categoryId
+    link = link + category_id + "/events"
+    
+    # add parking pass filter
+    link = link + "?exclude_parking_passes=true"
+    
+    # add lat/long/distance
+    if latitude and longitude:
+        link = link + f"&latitude={latitude}&longitude={longitude}&max_distance_in_meters={max_distance}"
+
+    return link
+
 def get_stubhub_token(client_id, client_secret):
     if token_cache['token'] and token_cache['expires_at'] > time.time():
         print("The token has been cached and used without calling a new token")
