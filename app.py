@@ -76,16 +76,15 @@ def root():
 #             return {"error": f"could not post user: {e}"}, 405
 
 @app.route('/api/shows', methods=['GET', 'POST'])
-def shows():
+def shows(category="broadway"):
     if request.method == 'GET':
         token = get_stubhub_token("4XWc10UmncVBoHo3lT8b", "sfwKjMe6h1cApxw1Ca7ZKTsaoa2gSRov5ECYkM2pVXEvAUW0Ux0KViQZwWfI")
         show_data = []
         i = 1
-        for show in show_api_endpoints2:
+        for show in show_api_endpoints2[category]:
             # call the stubhub api and return the cheapest ticket
             endpoint = get_link(show["category_id"], show["latitude"], show["longitude"])
             events_data = get_broadway_tickets(token, endpoint)
-            print(events_data)
             if events_data["_embedded"]["items"]:
                 cheapest_ticket = find_cheapest_ticket(events_data)
             
