@@ -9,7 +9,7 @@ import json
 import random
 from datetime import datetime
 
-from api import partnerize_tracking_link, show_api_endpoints, show_api_endpoints2, get_link, get_stubhub_token, get_broadway_tickets, find_cheapest_ticket
+from api import partnerize_tracking_link, show_api_endpoints, get_link, get_stubhub_token, get_broadway_tickets, find_cheapest_ticket
 
 config = dotenv_values(".env")
 
@@ -81,7 +81,7 @@ def shows(category="broadway"):
         token = get_stubhub_token("4XWc10UmncVBoHo3lT8b", "sfwKjMe6h1cApxw1Ca7ZKTsaoa2gSRov5ECYkM2pVXEvAUW0Ux0KViQZwWfI")
         show_data = []
         i = 1
-        for show in show_api_endpoints2[category]:
+        for show in show_api_endpoints[category]:
             # call the stubhub api and return the cheapest ticket
             endpoint = get_link(show["category_id"], show["latitude"], show["longitude"])
             events_data = get_broadway_tickets(token, endpoint)
