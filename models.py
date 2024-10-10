@@ -18,10 +18,10 @@ metadata = MetaData(
 )
 db = SQLAlchemy(metadata=metadata)
 
-class User(db.Model, SerializerMixin):
+class User (db.Model, SerializerMixin):
     __tablename__ = "user"
     
-    serialize_rules = ["-show_preferences.user"]
+    serialize_rules = ["-event_preferences.user", "-category_preferences.user"]
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String)
@@ -29,62 +29,107 @@ class User(db.Model, SerializerMixin):
     first_name = db.Column(db.String)
     last_name = db.Column(db.String)
 
-    show_preferences = db.relationship("Show_Preferences", back_populates="user")
+    event_preferences = db.relationship("Event_Preference", back_populates="user")
+    category_preferences = db.relationship("Category_Preference", back_populates="user")
 
-class Show_Preference(db.Model, SerializerMixin):
-    __tablename__ = "show_preference"
+class Token (db.Model, SerializerMixin):
+    __tablename__ = "token"
+
+    id = db.Column(db.Integer, primary_key=True)
+    access_token = db.Column(db.String)
+    expires_at = db.Column(db.DateTime)
+
+class Event_Preference (db.Model, SerializerMixin):
+    __tablename__ = "event_preference"
     
-    serialize_rules = ["-user.show_preferences", "-show.show_preferences"]
+    serialize_rules = ["-user.event_preferences", "-event.event_preferences"]
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    show_id = db.Column(db.Integer, db.ForeignKey("show.id"))
+    event_id = db.Column(db.Integer, db.ForeignKey("event.id"))
     price = db.Column(db.Numeric(scale=2), nullable=True)
-    seat_region = db.Column(db.String, nullable=True)
     start_date = db.Column(db.Date, default=date.today, nullable=True)
     end_date = db.Column(db.Date, default=date.today, nullable=True)
     show_time = db.Column(db.Time, default=time(0, 0), nullable=True)
 
-    user = db.relationship("User", back_populates="show_preferences")
-    show = db.relationship("Show", back_populates="show_preferences")
+    user = db.relationship("User", back_populates="event_preferences")
+    event = db.relationship("Event", back_populates="event_preferences")
 
-class Show (db.Model, SerializerMixin):
-    __tablename__ = "show"
+class Category_Preference (db.Model, SerializerMixin):
+    __tablename__ = "category_preference"
+    
+    serialize_rules = ["-user.category_preferences", "-category.category_preferences"]
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
+    price = db.Column(db.Numeric(scale=2), nullable=True)   
+    start_date = db.Column(db.Date, default=date.today, nullable=True)
+    end_date = db.Column(db.Date, default=date.today, nullable=True)
+    show_time = db.Column(db.Time, default=time(0, 0), nullable=True)
 
-    serialize_rules = ["-show_preferences.show", "-show_info.show", "-ticket_info.show"]
+    user = db.relationship("User", back_populates="category_preferences")
+    category = db.relationship("Category", back_populates="category_preferences")
+
+class Category (db.Model, SerializerMixin):
+    __tablename__ = "category"
+
+    serialize_rules = ["-category_preferences.category", "-event.category"]
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
 
-    show_preferences = db.relationship("Show_Preferences", back_populates="show")
-    show_info = db.relationship("Show_Info", back_populates="show")
-    ticket_info = db.relationship("Ticket_Info", back_populates="show")
+    category_preferences = db.relationship("Category_Preference", back_populates="category")
+    event = db.relationship("Event", back_populates="category")
 
-class Show_Info (db.Model, SerializerMixin):
-    __tablename__ = "show_info"
+class Event (db.Model, SerializerMixin):
+    __tablename__ = "event"
 
-    serialize_rules = ["-show.show_info"]
+    serialize_rules = ["-event_preferences.event", "-event_info.event", "-category.event", "-venue.event"]
 
     id = db.Column(db.Integer, primary_key=True)
-    show_id = db.Column(db.Integer, db.ForeignKey("show.id"))
-    theater = db.Column(db.String)
+    name = db.Column(db.String)
+    stubhub_category_id = db.Column(db.String)
+    venue_id = db.Column(db.Integer, db.ForeignKey("venue.id"), nullable=True)
     lottery_url = db.Column(db.String, nullable=True)
-    show_duration = db.Column(db.String)
+    show_duration = db.Column(db.String, nullable=True)
+    category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
+    image = db.Column(db.String, nullable=True)
 
-    show = db.relationship("Show", back_populates="show_info")
+    event_preferences = db.relationship("Event_Preference", back_populates="event")
+    event_info = db.relationship("Event_Info", back_populates="event")
+    category = db.relationship("Category", back_populates="event")
+    venue = db.relationship("Venue", back_populates="event")
 
-class Ticket_Info (db.Model, SerializerMixin):
-    __tablename__ = "ticket_info"
+class Event_Info (db.Model, SerializerMixin):
+    __tablename__ = "event_info"
 
-    serialize_rules = ["-show.ticket_info"]
+    serialize_rules = ["-event.event_info"]
 
     id = db.Column(db.Integer, primary_key=True)
-    show_id = db.Column(db.Integer, db.ForeignKey("show.id"))
+    name = db.Column(db.String)
+    event_id = db.Column(db.Integer, db.ForeignKey("event.id"))
     price = db.Column(db.Numeric(scale=2))
-    seat_region = db.Column(db.String, nullable=True)
-    seat_numbers = db.Column(db.String, nullable=True)
-    number_of_seats = db.Column(db.Integer, nullable=True)
-    show_time = db.Column(db.Time, default=time(0, 0), nullable=True)
-    show_date = db.Column(db.Date, default=date.today, nullable=True)
+    event_time = db.Column(db.Time, nullable=True)
+    event_date = db.Column(db.Date, nullable=True)
+    event_weekday = db.Column(db.Integer, nullable=True)
+    formatted_date = db.Column(db.String, nullable=True)
+    sortable_date = db.Column(db.DateTime, nullable=True)
+    link = db.Column(db.String)
+    updated_at = db.Column(db.DateTime, default=date.today, nullable=True)
 
-    show = db.relationship("Show", back_populates="ticket_info")
+    event = db.relationship("Event", back_populates="event_info")
+
+class Venue (db.Model, SerializerMixin):
+    __tablename__ = "venue"
+
+    serialize_rules = ["-event.venue"]
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    stubhub_venue_id = db.Column(db.String)
+    latitude = db.Column(db.String)
+    longitude = db.Column(db.String)
+    seatplan_url = db.Column(db.String, nullable=True)
+
+    event = db.relationship("Event", back_populates="venue")
