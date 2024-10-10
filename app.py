@@ -11,9 +11,6 @@ from datetime import datetime, timedelta
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 
-
-from api import show_api_endpoints
-
 config = dotenv_values(".env")
 
 app = Flask(__name__)
