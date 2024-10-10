@@ -107,7 +107,6 @@ def get_broadway_tickets(token, endpoint):
         print(f'Failed to fetch tickets from {url}: {response.status_code}, {response.text}')
         return None
     
-
 # function to use the received data to find the cheapest ticket in the category
 def find_cheapest_ticket(events):
     cheapest_ticket = None
@@ -125,6 +124,7 @@ def find_cheapest_ticket(events):
     
     return cheapest_ticket if cheapest_ticket else "No tickets found"
 
+# function to call stubhub and update the database with the new data
 def fetch_stubhub_data():
     
     token = get_stubhub_token(client_id, client_secret)
@@ -212,7 +212,6 @@ def fetch_stubhub_data():
 
             db.session.commit()
         
-
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(fetch_stubhub_data, 'interval', minutes=15)
 # scheduler.start()
@@ -268,46 +267,6 @@ def root():
 #         except Exception as e:
 #             print(e)
 #             return {"error": f"could not post user: {e}"}, 405
-
-
-@app.route('/api/data/<category>', methods=['GET', 'POST'])
-def shows(category):
-    if request.method == 'GET':
-        token = get_stubhub_token(client_id, client_secret)
-        show_data = []
-        i = 1
-        for show in show_api_endpoints[category]:
-            # call the stubhub api and return the cheapest ticket
-            endpoint = get_category_link(show["category_id"], show["latitude"], show["longitude"])
-            events_data = get_broadway_tickets(token, endpoint)
-            if events_data["_embedded"]["items"]:
-                cheapest_ticket_object = None
-                cheapest_ticket = find_cheapest_ticket(events_data)
-            
-                # reformat date
-                start_date = cheapest_ticket["start_date"]
-                formatted_date = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
-                formatted_date = formatted_date.strftime("%a, %b %-d, %Y %-I%p")
-                formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
-
-                # build show info object
-                cheapest_ticket_object = {
-                    "id": i,
-                    "name": cheapest_ticket["name"],
-                    "start_date": start_date,
-                    "formatted_date": formatted_date,
-                    "min_ticket_price": round(cheapest_ticket["min_ticket_price"]["amount"]),
-                    "href": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
-                    "venue_name": cheapest_ticket["_embedded"]["venue"]["name"],
-                }
-                i += 1
-
-            if cheapest_ticket_object:
-                show_data.append(cheapest_ticket_object)
-
-        
-        # shows_data = [show.to_dict() for show in show_data]
-        return make_response( show_data, 200 )
     
 @app.route('/api/events', methods=['GET', 'POST'])
 def get_events():
@@ -345,86 +304,6 @@ def refresh_stubhub_data():
         return {"message": "StubHub data fetched successfully"}, 200
     except Exception as e:
         return {"error": str(e)}, 500
-
-@app.route('/api/categories/old/<string:name>', methods=['GET', 'POST'])
-def get_shows_by_category_old(name):
-    if request.method == 'GET':
-        token = get_stubhub_token(client_id, client_secret)
-        category = db.session.query(Category).filter_by(name=name).first()
-        if not category:
-            return {"error": f"category with id {id} not found"}, 404
-        for event in category.event:
-            # if there is no associated venue with the event, assign an empty string to lat and long values
-            if event.venue:
-                latitude = event.venue.latitude
-                longitude = event.venue.longitude
-            else:
-                latitude = ""
-                longitude = ""
-            
-            # address edge case of updated_at variable value from database
-            if event.event_info[0].updated_at:
-                updated_at = event.event_info[0].updated_at
-            else:
-                updated_at = ""
-
-            endpoint = get_category_link(event.stubhub_category_id, "", latitude, longitude, 100)
-            events_data = get_broadway_tickets(token, endpoint)
-
-            if events_data["_embedded"]["items"]:
-                cheapest_ticket = find_cheapest_ticket(events_data)
-
-                start_date = cheapest_ticket["start_date"]
-                non_formatted_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
-                
-                non_formatted_time = non_formatted_datetime.time()
-                non_formatted_date = non_formatted_datetime.date()
-                non_formatted_weekday = non_formatted_datetime.weekday()
-                
-                formatted_time = non_formatted_datetime.strftime("%-I:%M%p").lower()
-                formatted_date = non_formatted_datetime.strftime("%a, %b %-d, %Y %-I%p")
-                complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
-                formatted_weekday = non_formatted_datetime.strftime("%a")
-
-                # if event_info is empty
-                if not event.event_info:
-                    # post new entry
-                        new_event_info = Event_Info (
-                            name = cheapest_ticket["name"],
-                            event_id = event.id,
-                            price = round(cheapest_ticket["min_ticket_price"]["amount"]),
-                            event_time = non_formatted_time,
-                            event_date = non_formatted_date,
-                            event_weekday = non_formatted_weekday,
-                            formatted_date = complete_formatted_date,
-                            sortable_date = non_formatted_datetime,
-                            link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
-                            updated_at = datetime.now(),
-                        )
-                        db.session.add(new_event_info)
-                        db.session.commit()
-                # if database price is lower than the scraped stubhub minimum price
-                elif round(cheapest_ticket["min_ticket_price"]["amount"]) > event.event_info[0].price:
-                    print(f'since the scraped cheapest ticket ({round(cheapest_ticket["min_ticket_price"]["amount"])}) isnt less than the old cheapest ticket ({event.event_info[0].price}, we arent changing anything)')
-                    continue
-                else:
-                    # patch entry with new info
-                        event_info_variable = event.event_info[0]
-
-                        event_info_variable.name = cheapest_ticket["name"]
-                        event_info_variable.event_id = event.id
-                        event_info_variable.price = round(cheapest_ticket["min_ticket_price"]["amount"])
-                        event_info_variable.event_time = non_formatted_time
-                        event_info_variable.event_date = non_formatted_date
-                        event_info_variable.event_weekday = non_formatted_weekday
-                        event_info_variable.formatted_date = complete_formatted_date
-                        event_info_variable.sortable_date = non_formatted_datetime
-                        event_info_variable.link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
-                        event_info_variable.updated_at = datetime.now()
-
-            db.session.commit()
-
-        return category.to_dict()
 
 
 if __name__ == "__main__":
