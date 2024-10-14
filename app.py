@@ -3,33 +3,32 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from models import db, User, Event, Event_Preference, Category_Preference, Event_Info, Category, Token, Venue
-from dotenv import dotenv_values
+from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
 import json
 import random
 from datetime import datetime, timedelta
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
+import os
 
-config = dotenv_values(".env")
+# Load the .env file if present (for local development)
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = config['FLASK_SECRET_KEY']
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
 CORS(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = config["SQLALCHEMY_DATABASE_URI"]
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.json.compact = False
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
 
-db.init_app(app)
-
-client_id = config['STUBHUB_CLIENT_ID']
-client_secret = config['STUBHUB_CLIENT_SECRET']
+client_id = os.getenv('STUBHUB_CLIENT_ID')
+client_secret = os.getenv('STUBHUB_CLIENT_SECRET')
 
 
 ############# Retrieving Stubhub Data #############
-# Partnerize Link
+# Partnerize Affiliate Link
 partnerize_tracking_link = "https://stubhub.prf.hn/click/camref:1100lTenp/destination:"
 
 # function to call stubhub using authentication info to get access token
