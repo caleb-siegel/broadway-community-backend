@@ -1,8 +1,8 @@
 from flask import Flask, make_response, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
 from flask_migrate import Migrate
 from flask_cors import CORS
-from models import db, User, Event, Event_Preference, Category_Preference, Event_Info, Category, Token, Venue
 from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
 import json
@@ -15,17 +15,31 @@ import os
 # Load the .env file if present (for local development)
 load_dotenv()
 
+
+
+metadata = MetaData(
+    naming_convention={
+        "ix": "ix_%(column_0_label)s",
+        "uq": "uq_%(table_name)s_%(column_0_name)s",
+        "ck": "ck_%(table_name)s_%(constraint_name)s",
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+        "pk": "pk_%(table_name)s",
+    }
+)
+
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 CORS(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app, metadata=metadata)
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
 
 client_id = os.getenv('STUBHUB_CLIENT_ID')
 client_secret = os.getenv('STUBHUB_CLIENT_SECRET')
 
+from models import User, Event, Event_Preference, Category_Preference, Event_Info, Category, Token, Venue
 
 ############# Retrieving Stubhub Data #############
 # Partnerize Affiliate Link
