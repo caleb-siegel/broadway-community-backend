@@ -16,11 +16,8 @@ from db import db, app
 # Load the .env file if present (for local development)
 load_dotenv()
 
-
-
-
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
-CORS(app, supports_credentials=True)
+CORS(app)
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
@@ -278,6 +275,18 @@ def get_events():
             events.append(event_dict)
 
         response = make_response(events,200)
+
+        return response
+
+@app.route('/api/event_preferences', methods=['GET', 'POST'])
+def get_event_preferences():
+    if request.method == 'GET':
+        event_preferences = []
+        for preference in Event_Preference.query.all():
+            preference_dict = preference.to_dict()
+            event_preferences.append(preference_dict)
+
+        response = make_response(event_preferences,200)
 
         return response
 
