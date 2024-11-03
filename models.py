@@ -1,4 +1,4 @@
-from app import db
+from db import db
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from sqlalchemy.orm import validates
@@ -13,10 +13,11 @@ class User (db.Model, SerializerMixin):
     serialize_rules = ["-event_preferences.user", "-category_preferences.user"]
     
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String)
     password_hash = db.Column(db.String)
     first_name = db.Column(db.String)
     last_name = db.Column(db.String)
+    email = db.Column(db.String)
+    phone_number = db.Column(db.String, nullable=True)
 
     event_preferences = db.relationship("Event_Preference", back_populates="user")
     category_preferences = db.relationship("Category_Preference", back_populates="user")
