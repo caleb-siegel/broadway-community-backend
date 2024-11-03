@@ -1,4 +1,4 @@
-from flask import Flask, make_response, request
+from flask import Flask, make_response, request, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from flask_migrate import Migrate
@@ -11,28 +11,17 @@ from datetime import datetime, timedelta
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
+from db import db, app
 
 # Load the .env file if present (for local development)
 load_dotenv()
 
 
 
-metadata = MetaData(
-    naming_convention={
-        "ix": "ix_%(column_0_label)s",
-        "uq": "uq_%(table_name)s_%(column_0_name)s",
-        "ck": "ck_%(table_name)s_%(constraint_name)s",
-        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-        "pk": "pk_%(table_name)s",
-    }
-)
 
-app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
-CORS(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app, metadata=metadata)
+CORS(app, supports_credentials=True)
+
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
 
@@ -70,7 +59,7 @@ def get_stubhub_token(client_id, client_secret):
     expires_at = current_time + timedelta(seconds=received_token_data["expires_in"])
     
     # if there are no token instances, create one
-    if token == None:    
+    if token == None:
         new_token = Token(access_token=access_token, expires_at=expires_at)
         db.session.add(new_token)
         db.session.commit()
@@ -143,7 +132,6 @@ def fetch_stubhub_data():
     if not events:
         return {"error": f"Couldn't fetch events"}, 404
     for event in events:
-        
         # if there is no associated venue with the event, assign an empty string to lat and long values
         if event.venue:
             latitude = event.venue.latitude
@@ -231,52 +219,55 @@ def fetch_stubhub_data():
 def root():
     return "<h1>Welcome to the simple json server<h1>"
 
-# @app.get('/api/check_session')
-# def check_session():
-#     user = db.session.get(User, session.get('user_id'))
-#     print(f'check session {session.get("user_id")}')
-#     if user:
-#         return user.to_dict(rules=['-password_hash']), 200
-#     else:
-#         return {"message": "No user logged in"}, 401
+@app.get('/api/check_session')
+def check_session():
+    user = db.session.get(User, session.get('user_id'))
+    print(f'check session {session.get("user_id")}')
+    if user:
+        return user.to_dict(rules=['-password_hash']), 200
+    else:
+        return {"message": "No user logged in"}, 401
 
-# @app.delete('/api/logout')
-# def logout():
-#     session.pop('user_id')
-#     return { "message": "Logged out"}, 200
+@app.delete('/api/logout')
+def logout():
+    session.pop('user_id')
+    return { "message": "Logged out"}, 200
 
-# @app.post('/api/login')
-# def login():
-#     print('login')
-#     data = request.json
-#     user = User.query.filter(User.name == data.get('name')).first()
-#     if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
-#         session["user_id"] = user.id
-#         print("success")
-#         return user.to_dict(), 200
-#     else:
-#         return { "error": "Invalid username or password" }, 401
+@app.post('/api/login')
+def login():
+    print('login')
+    data = request.json
+    user = User.query.filter(User.email == data.get('email')).first()
+    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
+        session["user_id"] = user.id
+        print("success")
+        return user.to_dict(), 200
+    else:
+        return { "error": "Invalid username or password" }, 401
     
-# @app.route('/api/user', methods=['GET', 'POST'])
-# def user():
-#     if request.method == 'GET':
-#         users = [user.to_dict() for user in User.query.all()]
-#         return make_response( users, 200 )
+@app.route('/api/user', methods=['GET', 'POST'])
+def user():
+    if request.method == 'GET':
+        users = [user.to_dict() for user in User.query.all()]
+        return make_response( users, 200 )
     
-#     elif request.method == 'POST':
-#         data = request.json
-#         try:
-#             new_user = User(
-#                 name= data.get("name"),
-#                 password_hash= bcrypt.generate_password_hash(data.get("password_hash"))
-#             )
-#             db.session.add(new_user)
-#             db.session.commit()
+    elif request.method == 'POST':
+        data = request.json
+        try:
+            new_user = User(
+                first_name = data.get("first_name"),
+                last_name = data.get("last_name"),
+                email = data.get("email"),
+                phone_number = data.get("phone_number"),
+                password_hash = bcrypt.generate_password_hash(data.get("password_hash"))
+            )
+            db.session.add(new_user)
+            db.session.commit()
             
-#             return new_user.to_dict(), 201
-#         except Exception as e:
-#             print(e)
-#             return {"error": f"could not post user: {e}"}, 405
+            return new_user.to_dict(), 201
+        except Exception as e:
+            print(e)
+            return {"error": f"could not post user: {e}"}, 405
     
 @app.route('/api/events', methods=['GET', 'POST'])
 def get_events():
