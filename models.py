@@ -13,7 +13,7 @@ class User (db.Model, SerializerMixin):
     serialize_rules = ["-event_preferences.user", "-category_preferences.user"]
     
     id = db.Column(db.Integer, primary_key=True)
-    password_hash = db.Column(db.String)
+    password_hash = db.Column(db.Binary(60))
     first_name = db.Column(db.String)
     last_name = db.Column(db.String)
     email = db.Column(db.String)
