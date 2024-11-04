@@ -19,7 +19,7 @@ load_dotenv()
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 CORS(app)
 
-bcrypt = Bcrypt(app)
+flask_bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
 
 client_id = os.getenv('STUBHUB_CLIENT_ID')
@@ -235,7 +235,7 @@ def login():
     print('login')
     data = request.json
     user = User.query.filter(User.email == data.get('email')).first()
-    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
+    if user and flask_bcrypt.check_password_hash(user.password_hash, data.get('password')):
         session["user_id"] = user.id
         print("success")
         return user.to_dict(), 200
@@ -256,7 +256,7 @@ def user():
                 last_name = data.get("last_name"),
                 email = data.get("email"),
                 phone_number = data.get("phone_number"),
-                password_hash = bcrypt.generate_password_hash(data.get("password_hash"))
+                password_hash = flask_bcrypt.generate_password_hash(data.get("password_hash"))
             )
             db.session.add(new_user)
             db.session.commit()
