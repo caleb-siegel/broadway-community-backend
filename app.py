@@ -123,10 +123,9 @@ def find_cheapest_ticket(events):
     return cheapest_ticket if cheapest_ticket else "No tickets found"
 
 # function to call stubhub and update the database with the new data
-def fetch_stubhub_data():
+def fetch_stubhub_data(events):
     
     token = get_stubhub_token(client_id, client_secret)
-    events = db.session.query(Event).all()
 
     if not events:
         return {"error": f"Couldn't fetch events"}, 404
@@ -312,7 +311,8 @@ def get_category_by_name(name):
 @app.route('/api/fetch_tickets', methods=['POST'])
 def refresh_stubhub_data():
     try:
-        fetch_stubhub_data()
+        events = db.session.query(Event).all()
+        fetch_stubhub_data(events)
         return {"message": "StubHub data fetched successfully"}, 200
     except Exception as e:
         return {"error": str(e)}, 500
