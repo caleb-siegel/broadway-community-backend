@@ -235,7 +235,7 @@ def login():
     print('login')
     data = request.json
     user = User.query.filter(User.email == data.get('email')).first()
-    if user and bcrypt.check_password_hash(data.get('password'), user.password_hash):
+    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
         session["user_id"] = user.id
         print("success")
         return user.to_dict(), 200
