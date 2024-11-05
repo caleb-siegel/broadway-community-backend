@@ -51,24 +51,26 @@ def get_stubhub_token(client_id, client_secret):
     token = Token.query.first()
     current_time = datetime.now()
     
-    received_token_data = token_request()
-    access_token = received_token_data["access_token"]
-    expires_at = current_time + timedelta(seconds=received_token_data["expires_in"])
-    
-    # if there are no token instances, create one
-    if token == None:
-        new_token = Token(access_token=access_token, expires_at=expires_at)
-        db.session.add(new_token)
-        db.session.commit()
-    
-    # if the token is expired, generate a new one
-    elif token.expires_at < current_time:
-        token.access_token = access_token
-        token.expires_at = expires_at
-        db.session.commit()
-
-    else:
+    # only generate a new token if the old one expired
+    if token != None and token.expires_at > current_time:
         return token.access_token
+    
+    else:
+        received_token_data = token_request()
+        access_token = received_token_data["access_token"]
+        expires_at = current_time + timedelta(seconds=received_token_data["expires_in"])
+        
+        # if there are no token instances, create one
+        if token == None:
+            new_token = Token(access_token=access_token, expires_at=expires_at)
+            db.session.add(new_token)
+            db.session.commit()
+        
+        # if the token is expired, generate a new one
+        elif token.expires_at < current_time:
+            token.access_token = access_token
+            token.expires_at = expires_at
+            db.session.commit()
 
 # function to create the link to call stubhub's api with given certain parameters
 def get_category_link(category_id, updated_at="", latitude="", longitude="", max_distance=1000):
