@@ -17,7 +17,7 @@ from db import db, app
 load_dotenv()
 
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
-CORS(app)
+CORS(app, supports_credentials=True, origins=["http://localhost:5173/", "https://broadwaycommunity.vercel.app/"])
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
