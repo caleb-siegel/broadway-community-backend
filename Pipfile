@@ -20,6 +20,7 @@ flask-sqlalchemy = "*"
 psycopg2-binary = "*"
 requests = "*"
 apscheduler = "*"
+sendgrid = "*"
 
 [dev-packages]
 
