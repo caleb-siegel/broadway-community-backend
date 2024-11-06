@@ -23,7 +23,6 @@ def send_notification():
         preference_price = preference.price
         
         if current_price <= preference_price:
-            # Send notification email
             message = Mail(
                 from_email='caleb.siegel@gmail.com',
                 to_emails=preference.user.email,
@@ -33,7 +32,7 @@ def send_notification():
         
         This show is on {preference.event.event_info[0].formatted_date}.<br><br>
         
-        Purchase tickets here: <a href="{preference.event.event_info[0].link}">Link to tickets</a>.<br><br>
+        <a href="{preference.event.event_info[0].link}">Buy Tickets Here</a><br><br>
 
         Not sure if the seats are good or not? <a href="{preference.event.venue.seatplan_url}">Click here</a> to see images from specific seats.
         
