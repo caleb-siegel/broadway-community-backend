@@ -32,9 +32,9 @@ def send_notification():
         
         This show is on {preference.event.event_info[0].formatted_date}.<br><br>
         
-        <a href="{preference.event.event_info[0].link}">Buy Tickets Here</a><br><br>
+        <a href="{preference.event.event_info[0].link}">Buy the tickets here</a><br><br>
 
-        Not sure if the seats are good or not? <a href="{preference.event.venue.seatplan_url}">Click here</a> to see images from specific seats.
+        Want to know what the view might be like from these seats? <a href="{preference.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
         
         <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
     """
