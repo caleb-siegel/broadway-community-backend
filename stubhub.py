@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from models import Token, Event_Info, Event_Preference
 from db import db
+import sendgrid
+from sendgrid.helpers.mail import Mail
 
 
 # Load the .env file if present (for local development)
@@ -11,6 +13,29 @@ load_dotenv()
 
 client_id = os.getenv('STUBHUB_CLIENT_ID')
 client_secret = os.getenv('STUBHUB_CLIENT_SECRET')
+sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+
+############# Notifications #############
+def send_notification():
+    preferences = db.session.query(Event_Preference).all()
+    for preference in preferences:
+        current_price = preference.event.event_info[0].price
+        preference_price = preference.price
+        
+        if current_price <= preference_price:
+            # Send notification email
+            message = Mail(
+                from_email='caleb.siegel@gmail.com',
+                to_emails=preference.user.email,
+                subject=f'Price Alert for {preference.event.name}',
+                html_content=f"The price for {preference.event.name} has dropped to {current_price}. This show is on {preference.event.event_info[0].formatted_date}. Purchase tickets here: {preference.event.event_info[0].link}"
+            )
+            try:
+                sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+                response = sg.send(message)
+                print(response.status_code)
+            except Exception as e:
+                print(e)
 
 
 ############# Retrieving Stubhub Data #############
@@ -193,17 +218,9 @@ def fetch_stubhub_data(events):
                     # print(f"tickets for {event_info_variable.id} updated successfully")
 
             db.session.commit()
+    
+    send_notification()
         
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(fetch_stubhub_data, 'interval', minutes=15)
 # scheduler.start()
-
-############# Notifications #############
-# loop over event_preferences
-def send_notification():
-    preferences = db.session.query(Event_Preference).all()
-    for preference in preferences:
-        # if show equals show and price is below current price
-        if preference.event.event_info[0].price <= preference.price:
-            # send notification
-            pass
