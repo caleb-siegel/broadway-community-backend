@@ -246,9 +246,7 @@ def login():
     print('login')
     data = request.json
     user = User.query.filter(User.email == data.get('email')).first()
-    print(user)
-    print(data.get('email'))
-    if user and bcrypt.checkpw(data.get('password').encode('utf-8'), user.password_hash):
+    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
         session["user_id"] = user.id
         print("success")
         return user.to_dict(), 200
@@ -269,7 +267,7 @@ def user():
                 last_name = data.get("last_name"),
                 email = data.get("email"),
                 phone_number = data.get("phone_number"),
-                password_hash = bcrypt.hashpw(data.get("password").encode("utf-8"), bcrypt.gensalt())
+                password_hash = bcrypt.generate_password_hash(data.get("password_hash"))
             )
             db.session.add(new_user)
             db.session.commit()
