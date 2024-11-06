@@ -100,6 +100,18 @@ def get_event_preferences():
 
         return response
 
+@app.route('/api/category_preferences', methods=['GET', 'POST'])
+def get_category_preferences():
+    if request.method == 'GET':
+        category_preferences = []
+        for preference in Category_Preference.query.all():
+            preference_dict = preference.to_dict()
+            category_preferences.append(preference_dict)
+
+        response = make_response(category_preferences,200)
+
+        return response
+
 @app.route('/api/categories', methods=['GET', 'POST'])
 def get_categories():
     if request.method == 'GET':
