@@ -29,13 +29,15 @@ def send_notification():
                 to_emails=preference.user.email,
                 subject=f'Price Alert: {preference.event.name} ${current_price}',
                 html_content=f"""
-        {preference.event.name} is now selling at <strong>${current_price}</strong>.<br><br>
+        <strong>{preference.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
         
         This show is on {preference.event.event_info[0].formatted_date}.<br><br>
         
         Purchase tickets here: <a href="{preference.event.event_info[0].link}">Link to tickets</a>.<br><br>
+
+        Not sure if the seats are good or not? <a href="{preference.event.venue.seatplan_url}">Click here</a> to see images from specific seats.
         
-        Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.
+        <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
     """
             )
             try:
