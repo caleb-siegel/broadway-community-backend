@@ -27,16 +27,15 @@ def send_notification():
             message = Mail(
                 from_email='caleb.siegel@gmail.com',
                 to_emails=preference.user.email,
-                subject=f'Price Alert for {preference.event.name}',
+                subject=f'Price Alert: {preference.event.name} ${current_price}',
                 html_content=f"The price for {preference.event.name} has dropped to {current_price}. This show is on {preference.event.event_info[0].formatted_date}. Purchase tickets here: {preference.event.event_info[0].link}"
             )
             try:
                 sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
                 response = sg.send(message)
                 print(response.status_code)
-                print('email sent')
             except Exception as e:
-                print(f'email not sent: {e}')
+                print(e)
 
 
 ############# Retrieving Stubhub Data #############
