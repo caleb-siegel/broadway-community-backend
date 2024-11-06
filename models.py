@@ -48,7 +48,7 @@ class Event_Preference (db.Model, SerializerMixin):
 class Category_Preference (db.Model, SerializerMixin):
     __tablename__ = "category_preference"
     
-    serialize_rules = ["-user.category_preferences", "-category.category_preferences"]
+    serialize_rules = ["-user.event_preferences", "-user.category_preferences", "-category.category_preferences", "-category.event.event_preferences", "-category.event.category", "-category.event.category_id", "-category.event.image", "-category.event.lottery_url", "-category.event.name", "-category.event.show_duration"]
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
