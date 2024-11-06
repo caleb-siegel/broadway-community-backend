@@ -28,7 +28,13 @@ def send_notification():
                 from_email='caleb.siegel@gmail.com',
                 to_emails=preference.user.email,
                 subject=f'Price Alert: {preference.event.name} ${current_price}',
-                html_content=f"The price for {preference.event.name} has dropped to {current_price}. This show is on {preference.event.event_info[0].formatted_date}. Purchase tickets here: {preference.event.event_info[0].link}"
+                html_content=f"{preference.event.name} is now selling at <strong>${current_price}</strong>.
+                
+                This show is on {preference.event.event_info[0].formatted_date}. 
+                
+                Purchase tickets here: {preference.event.event_info[0].link}.
+                
+                Remember that these prices don't reflect Stubhub's fees so you should expect the complete price to be ~30% higher that the number you see above."
             )
             try:
                 sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
