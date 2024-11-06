@@ -34,8 +34,9 @@ def send_notification():
                 sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
                 response = sg.send(message)
                 print(response.status_code)
+                print('email sent')
             except Exception as e:
-                print(e)
+                print(f'email not sent: {e}')
 
 
 ############# Retrieving Stubhub Data #############
