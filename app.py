@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timedelta
 import os
 from db import db, app
-from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, send_notification
+from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets
 
 # Load the .env file if present (for local development)
 load_dotenv()

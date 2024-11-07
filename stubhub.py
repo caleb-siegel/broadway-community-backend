@@ -258,7 +258,7 @@ def fetch_stubhub_data(events):
 
             db.session.commit()
     
-    # event_preference_notification()
+    event_preference_notification()
     # category_preference_notification()
         
 # scheduler = BackgroundScheduler()
