@@ -2,7 +2,7 @@ import os
 import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from models import Token, Event_Info, Event_Preference
+from models import Token, Event_Info, Event_Preference, Category_Preference
 from db import db
 import sendgrid
 from sendgrid.helpers.mail import Mail
@@ -16,7 +16,7 @@ client_secret = os.getenv('STUBHUB_CLIENT_SECRET')
 sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
 
 ############# Notifications #############
-def send_notification():
+def event_preference_notification():
     preferences = db.session.query(Event_Preference).all()
     for preference in preferences:
         current_price = preference.event.event_info[0].price
@@ -46,6 +46,36 @@ def send_notification():
             except Exception as e:
                 print(e)
 
+# def category_preference_notification():
+#     preferences = db.session.query(Category_Preference).all()
+#     for cat_preference in preferences:
+#         for cat_event in cat_preference:
+#             current_price = cat_event.event.event_info[0].price
+#             preference_price = preference.price
+            
+#             if current_price <= preference_price:
+#                 message = Mail(
+#                     from_email='caleb.siegel@gmail.com',
+#                     to_emails=preference.user.email,
+#                     subject=f'Price Alert: {preference.event.name} ${current_price}',
+#                     html_content=f"""
+#             <strong>{preference.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
+            
+#             This show is on {preference.event.event_info[0].formatted_date}.<br><br>
+            
+#             <a href="{preference.event.event_info[0].link}">Buy the tickets here</a><br><br>
+
+#             Want to know what the view might be like from these seats? <a href="{preference.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
+            
+#             <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
+#         """
+#                 )
+#                 try:
+#                     sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+#                     response = sg.send(message)
+#                     print(response.status_code)
+#                 except Exception as e:
+#                     print(e)
 
 ############# Retrieving Stubhub Data #############
 # Partnerize Affiliate Link
@@ -228,7 +258,8 @@ def fetch_stubhub_data(events):
 
             db.session.commit()
     
-    send_notification()
+    event_preference_notification()
+    # category_preference_notification()
         
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(fetch_stubhub_data, 'interval', minutes=15)

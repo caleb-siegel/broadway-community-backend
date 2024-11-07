@@ -138,6 +138,15 @@ def refresh_stubhub_data():
     except Exception as e:
         return {"error": str(e)}, 500
 
+@app.route('/api/fetch_ticket/<integer:id>', methods=['POST'])
+def refresh_individual_ticket_data(id):
+    try:
+        event = db.session.query(Event).filter(Event.id == id).first()
+        fetch_stubhub_data(event)
+        return {"message": "StubHub data fetched successfully"}, 200
+    except Exception as e:
+        return {"error": str(e)}, 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
