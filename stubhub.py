@@ -198,7 +198,7 @@ def fetch_stubhub_data(events):
         
         endpoint = get_category_link(event.stubhub_category_id, "", latitude, longitude, 100)
         events_data = get_broadway_tickets(token, endpoint)
-        
+        event_data = []
         if not events_data["_embedded"]["items"]:
             continue
         else:
@@ -234,6 +234,7 @@ def fetch_stubhub_data(events):
                     db.session.add(new_event_info)
 
                     print(f"tickets for {new_event_info.name} added to the database")
+                    event_data.append(new_event_info)
                     # db.session.commit()
             # if database price is lower than the scraped stubhub minimum price
             # elif round(cheapest_ticket["min_ticket_price"]["amount"]) > event.event_info[0].price:
@@ -254,11 +255,14 @@ def fetch_stubhub_data(events):
                     event_info_variable.updated_at = datetime.now()
 
                     # print(f"tickets for {event_info_variable.id} updated successfully")
+                    event_data.append(event_info_variable)
 
             db.session.commit()
     
     event_preference_notification()
     # category_preference_notification()
+
+    return event_data
         
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(fetch_stubhub_data, 'interval', minutes=15)
