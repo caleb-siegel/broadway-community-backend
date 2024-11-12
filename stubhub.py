@@ -234,7 +234,7 @@ def fetch_stubhub_data(events):
                     db.session.add(new_event_info)
 
                     print(f"tickets for {new_event_info.name} added to the database")
-                    event_data.append(new_event_info)
+                    event_data.append(new_event_info.to_dict())
                     # db.session.commit()
             # if database price is lower than the scraped stubhub minimum price
             # elif round(cheapest_ticket["min_ticket_price"]["amount"]) > event.event_info[0].price:
@@ -255,7 +255,7 @@ def fetch_stubhub_data(events):
                     event_info_variable.updated_at = datetime.now()
 
                     # print(f"tickets for {event_info_variable.id} updated successfully")
-                    event_data.append(event_info_variable)
+                    event_data.append(event_info_variable.to_dict())
 
             db.session.commit()
     
