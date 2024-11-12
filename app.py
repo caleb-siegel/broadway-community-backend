@@ -142,8 +142,9 @@ def refresh_stubhub_data():
 def refresh_individual_ticket_data(id):
     try:
         event = db.session.query(Event).filter(Event.id == id).first()
-        fetch_stubhub_data([event])
-        return {"message": "StubHub data fetched successfully"}, 200
+        data = fetch_stubhub_data([event])
+        response = make_response(data.to_dict(),200)
+        return response
     except Exception as e:
         return {"error": str(e)}, 500
 
