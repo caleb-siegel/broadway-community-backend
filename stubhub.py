@@ -242,7 +242,6 @@ def fetch_stubhub_data(events):
             else:
                 # patch entry with new info
                     event_info_variable = event.event_info[0]
-
                     event_info_variable.name = cheapest_ticket["name"]
                     event_info_variable.event_id = event.id
                     event_info_variable.price = round(cheapest_ticket["min_ticket_price"]["amount"])
