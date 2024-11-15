@@ -141,7 +141,7 @@ def refresh_stubhub_data():
 @app.route('/api/fetch_ticket/<string:category>', methods=['POST'])
 def refresh_ticket_data_category(category):
     try:
-        events = db.session.query(Event).filter(Event.category.name == category).all()
+        events = db.session.query(Event).join(Category).filter(Category.name == category).all()
         data = fetch_stubhub_data(events)
         response = make_response(data,200)
         return response
