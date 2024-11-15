@@ -138,7 +138,7 @@ def refresh_stubhub_data():
     except Exception as e:
         return {"error": str(e)}, 500
 
-@app.route('/api/fetch_ticket/<string:category>', methods=['POST'])
+@app.route('/api/fetch_tickets/<string:category>', methods=['POST'])
 def refresh_ticket_data_category(category):
     try:
         events = db.session.query(Event).join(Category).filter(Category.name == category).all()
