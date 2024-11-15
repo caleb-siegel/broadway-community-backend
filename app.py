@@ -138,6 +138,16 @@ def refresh_stubhub_data():
     except Exception as e:
         return {"error": str(e)}, 500
 
+@app.route('/api/fetch_ticket/<string:category>', methods=['POST'])
+def refresh_ticket_data_category(category):
+    try:
+        events = db.session.query(Event).filter(Event.category.name == category).all()
+        data = fetch_stubhub_data(events)
+        response = make_response(data,200)
+        return response
+    except Exception as e:
+        return {"error": str(e)}, 500
+
 @app.route('/api/fetch_ticket/<int:id>', methods=['POST'])
 def refresh_individual_ticket_data(id):
     try:
