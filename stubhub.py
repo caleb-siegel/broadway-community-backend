@@ -295,7 +295,7 @@ def fetch_stubhub_data(events):
 
             db.session.commit()
     
-    events_preference_notification()
+    # events_preference_notification()
     # category_preference_notification()
 
     return event_data
