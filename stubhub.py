@@ -2,10 +2,12 @@ import os
 import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from models import Token, Event_Info, Event_Preference, Category_Preference
+from models import Token, Event_Info, Event_Preference, Category_Preference, Event
 from db import db
 import sendgrid
 from sendgrid.helpers.mail import Mail
+from sqlalchemy.orm import joinedload
+from collections import defaultdict
 
 
 # Load the .env file if present (for local development)
@@ -16,7 +18,7 @@ client_secret = os.getenv('STUBHUB_CLIENT_SECRET')
 sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
 
 ############# Notifications #############
-def event_preference_notification():
+def events_preference_notification():
     preferences = db.session.query(Event_Preference).all()
     for preference in preferences:
         current_price = preference.event.event_info[0].price
@@ -45,6 +47,33 @@ def event_preference_notification():
                 print(response.status_code)
             except Exception as e:
                 print(e)
+
+def event_preference_notification(current_price, name, preferences, event_info):
+    if preferences:
+        for preference in preferences:
+            preference_price = preference.price
+            if current_price <= preference_price:
+                message = Mail(
+                    from_email='caleb.siegel@gmail.com',
+                    to_emails=preference.user.email,
+                    subject=f'Price Alert: {name} ${current_price}',
+                    html_content=f"""
+            <strong>{name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
+            
+            This show is on {event_info.formatted_date}.<br><br>
+            
+            <a href="{event_info.link}">Buy the tickets here</a><br><br>
+            
+            <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
+        """
+                )
+                try:
+                    sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+                    response = sg.send(message)
+                    print(response.status_code)
+                except Exception as e:
+                    print(e)
+
 
 # def category_preference_notification():
 #     preferences = db.session.query(Category_Preference).all()
@@ -216,50 +245,57 @@ def fetch_stubhub_data(events):
             complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
             formatted_weekday = non_formatted_datetime.strftime("%a")
 
+            preference_event = db.session.query(Event).filter_by(name=cheapest_ticket["name"]).first()
+
+
             # if event_info is empty
             if not event.event_info:
                 # post new entry
-                    new_event_info = Event_Info (
-                        name = cheapest_ticket["name"],
-                        event_id = event.id,
-                        price = round(cheapest_ticket["min_ticket_price"]["amount"]),
-                        event_time = non_formatted_time,
-                        event_date = non_formatted_date,
-                        event_weekday = non_formatted_weekday,
-                        formatted_date = complete_formatted_date,
-                        sortable_date = non_formatted_datetime,
-                        link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
-                        updated_at = datetime.now(),
-                    )
-                    db.session.add(new_event_info)
+                new_event_info = Event_Info (
+                    name = cheapest_ticket["name"],
+                    event_id = event.id,
+                    price = round(cheapest_ticket["min_ticket_price"]["amount"]),
+                    event_time = non_formatted_time,
+                    event_date = non_formatted_date,
+                    event_weekday = non_formatted_weekday,
+                    formatted_date = complete_formatted_date,
+                    sortable_date = non_formatted_datetime,
+                    link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
+                    updated_at = datetime.now(),
+                )
+                db.session.add(new_event_info)
 
-                    print(f"tickets for {new_event_info.name} added to the database")
-                    event_data.append(new_event_info.to_dict())
-                    # db.session.commit()
+                print(f"tickets for {new_event_info.name} added to the database")
+                event_data.append(new_event_info.to_dict())
+
+                event_preference_notification(new_event_info.price, event.name, event.event_preferences, new_event_info)
+                # db.session.commit()
             # if database price is lower than the scraped stubhub minimum price
             # elif round(cheapest_ticket["min_ticket_price"]["amount"]) > event.event_info[0].price:
             #     print(f'since the scraped cheapest ticket ({round(cheapest_ticket["min_ticket_price"]["amount"])}) isnt less than the old cheapest ticket ({event.event_info[0].price}, we arent changing anything)')
             #     continue
             else:
                 # patch entry with new info
-                    event_info_variable = event.event_info[0]
-                    event_info_variable.name = cheapest_ticket["name"]
-                    event_info_variable.event_id = event.id
-                    event_info_variable.price = round(cheapest_ticket["min_ticket_price"]["amount"])
-                    event_info_variable.event_time = non_formatted_time
-                    event_info_variable.event_date = non_formatted_date
-                    event_info_variable.event_weekday = non_formatted_weekday
-                    event_info_variable.formatted_date = complete_formatted_date
-                    event_info_variable.sortable_date = non_formatted_datetime,
-                    event_info_variable.link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
-                    event_info_variable.updated_at = datetime.now()
+                event_info_variable = event.event_info[0]
+                event_info_variable.name = cheapest_ticket["name"]
+                event_info_variable.event_id = event.id
+                event_info_variable.price = round(cheapest_ticket["min_ticket_price"]["amount"])
+                event_info_variable.event_time = non_formatted_time
+                event_info_variable.event_date = non_formatted_date
+                event_info_variable.event_weekday = non_formatted_weekday
+                event_info_variable.formatted_date = complete_formatted_date
+                event_info_variable.sortable_date = non_formatted_datetime,
+                event_info_variable.link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
+                event_info_variable.updated_at = datetime.now()
 
-                    # print(f"tickets for {event_info_variable.id} updated successfully")
-                    event_data.append(event_info_variable.to_dict())
+                # print(f"tickets for {event_info_variable.id} updated successfully")
+                event_data.append(event_info_variable.to_dict())
+
+                event_preference_notification(event_info_variable.price, event.name, event.event_preferences, event_info_variable)
 
             db.session.commit()
     
-    event_preference_notification()
+    events_preference_notification()
     # category_preference_notification()
 
     return event_data
