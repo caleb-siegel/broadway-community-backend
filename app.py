@@ -88,6 +88,14 @@ def get_events():
 
         return response
 
+@app.route('/api/events/<int:id>', methods=['GET','POST'])
+def get_event(id):
+    if request.method == 'GET':
+        event_id = db.session.get(Event, id)
+        if not event_id:
+            return {"error": f"event with id {id} not found"}, 404
+        return event_id.to_dict()
+
 @app.route('/api/event_preferences', methods=['GET', 'POST'])
 def get_event_preferences():
     if request.method == 'GET':
