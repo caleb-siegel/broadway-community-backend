@@ -48,11 +48,11 @@ def events_preference_notification():
             except Exception as e:
                 print(e)
 
-def preference_notification(current_price, name, preferences, event_info):
+def preference_notification(old_price, current_price, name, preferences, event_info):
     if preferences:
         for preference in preferences:
             preference_price = preference.price
-            if current_price <= preference_price:
+            if current_price <= preference_price and (current_price < old_price or not old_price):
                 message = Mail(
                     from_email='caleb.siegel@gmail.com',
                     to_emails=preference.user.email,
@@ -74,37 +74,6 @@ def preference_notification(current_price, name, preferences, event_info):
                 except Exception as e:
                     print(e)
 
-
-# def category_preference_notification():
-#     preferences = db.session.query(Category_Preference).all()
-#     for cat_preference in preferences:
-#         for cat_event in cat_preference:
-#             current_price = cat_event.event.event_info[0].price
-#             preference_price = preference.price
-            
-#             if current_price <= preference_price:
-#                 message = Mail(
-#                     from_email='caleb.siegel@gmail.com',
-#                     to_emails=preference.user.email,
-#                     subject=f'Price Alert: {preference.event.name} ${current_price}',
-#                     html_content=f"""
-#             <strong>{preference.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
-            
-#             This show is on {preference.event.event_info[0].formatted_date}.<br><br>
-            
-#             <a href="{preference.event.event_info[0].link}">Buy the tickets here</a><br><br>
-
-#             Want to know what the view might be like from these seats? <a href="{preference.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
-            
-#             <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
-#         """
-#                 )
-#                 try:
-#                     sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
-#                     response = sg.send(message)
-#                     print(response.status_code)
-#                 except Exception as e:
-#                     print(e)
 
 ############# Retrieving Stubhub Data #############
 # Partnerize Affiliate Link
@@ -245,6 +214,8 @@ def fetch_stubhub_data(events):
             complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
             formatted_weekday = non_formatted_datetime.strftime("%a")
 
+            old_price = None
+
             # if event_info is empty
             if not event.event_info:
                 # post new entry
@@ -265,14 +236,16 @@ def fetch_stubhub_data(events):
                 print(f"tickets for {new_event_info.name} added to the database")
                 event_data.append(new_event_info.to_dict())
 
-                preference_notification(new_event_info.price, event.name, event.event_preferences, new_event_info)
-                preference_notification(new_event_info.price, event.name, event.category.category_preferences, new_event_info)
+                preference_notification(old_price, new_event_info.price, event.name, event.event_preferences, new_event_info)
+                preference_notification(old_price, new_event_info.price, event.name, event.category.category_preferences, new_event_info)
                 # db.session.commit()
+
             # if database price is lower than the scraped stubhub minimum price
             # elif round(cheapest_ticket["min_ticket_price"]["amount"]) > event.event_info[0].price:
             #     print(f'since the scraped cheapest ticket ({round(cheapest_ticket["min_ticket_price"]["amount"])}) isnt less than the old cheapest ticket ({event.event_info[0].price}, we arent changing anything)')
             #     continue
             else:
+                old_price = event.event_info[0].price
                 # patch entry with new info
                 event_info_variable = event.event_info[0]
                 event_info_variable.name = cheapest_ticket["name"]
@@ -289,13 +262,12 @@ def fetch_stubhub_data(events):
                 # print(f"tickets for {event_info_variable.id} updated successfully")
                 event_data.append(event_info_variable.to_dict())
 
-                preference_notification(event_info_variable.price, event.name, event.event_preferences, event_info_variable)
-                preference_notification(event_info_variable.price, event.name, event.category.category_preferences, event_info_variable)
+                preference_notification(old_price, event_info_variable.price, event.name, event.event_preferences, event_info_variable)
+                preference_notification(old_price, event_info_variable.price, event.name, event.category.category_preferences, event_info_variable)
 
             db.session.commit()
     
     # events_preference_notification()
-    # category_preference_notification()
 
     return event_data
         
