@@ -26,7 +26,7 @@ def events_preference_notification():
         
         if current_price <= preference_price:
             message = Mail(
-                from_email='caleb.siegel@gmail.com',
+                from_email='broadway.comms@gmail.com',
                 to_emails=preference.user.email,
                 subject=f'Price Alert: {preference.event.name} ${current_price}',
                 html_content=f"""
@@ -54,7 +54,7 @@ def preference_notification(old_price, current_price, name, preferences, event_i
             preference_price = preference.price
             if current_price <= preference_price and (current_price < old_price or not old_price):
                 message = Mail(
-                    from_email='caleb.siegel@gmail.com',
+                    from_email='broadway.comms@gmail.com',
                     to_emails=preference.user.email,
                     subject=f'Price Alert: {name} ${current_price}',
                     html_content=f"""
