@@ -48,7 +48,7 @@ def events_preference_notification():
             except Exception as e:
                 print(e)
 
-def event_preference_notification(current_price, name, preferences, event_info):
+def preference_notification(current_price, name, preferences, event_info):
     if preferences:
         for preference in preferences:
             preference_price = preference.price
@@ -245,9 +245,6 @@ def fetch_stubhub_data(events):
             complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
             formatted_weekday = non_formatted_datetime.strftime("%a")
 
-            preference_event = db.session.query(Event).filter_by(name=cheapest_ticket["name"]).first()
-
-
             # if event_info is empty
             if not event.event_info:
                 # post new entry
@@ -268,7 +265,8 @@ def fetch_stubhub_data(events):
                 print(f"tickets for {new_event_info.name} added to the database")
                 event_data.append(new_event_info.to_dict())
 
-                event_preference_notification(new_event_info.price, event.name, event.event_preferences, new_event_info)
+                preference_notification(new_event_info.price, event.name, event.event_preferences, new_event_info)
+                preference_notification(new_event_info.price, event.name, event.category.category_preferences, new_event_info)
                 # db.session.commit()
             # if database price is lower than the scraped stubhub minimum price
             # elif round(cheapest_ticket["min_ticket_price"]["amount"]) > event.event_info[0].price:
@@ -291,7 +289,8 @@ def fetch_stubhub_data(events):
                 # print(f"tickets for {event_info_variable.id} updated successfully")
                 event_data.append(event_info_variable.to_dict())
 
-                event_preference_notification(event_info_variable.price, event.name, event.event_preferences, event_info_variable)
+                preference_notification(event_info_variable.price, event.name, event.event_preferences, event_info_variable)
+                preference_notification(event_info_variable.price, event.name, event.category.category_preferences, event_info_variable)
 
             db.session.commit()
     
