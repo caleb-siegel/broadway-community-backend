@@ -24,7 +24,7 @@ CORS(app, supports_credentials=True, resources={
     r"/api/*": {
         "origins": ["http://localhost:5173", "https://broadwaycommunity.vercel.app"],
         "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type"],
+        "allow_headers": ["Content-Type", "Accept", "Authorization"],
         "supports_credentials": True
     }
 })
