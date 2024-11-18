@@ -23,7 +23,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session duration
 CORS(app, supports_credentials=True, resources={
     r"/api/*": {
         "origins": ["http://localhost:5173", "https://broadwaycommunity.vercel.app"],
-        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
+        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type"],
         "supports_credentials": True
     }
