@@ -1,4 +1,4 @@
-from flask import Flask, make_response, request, session
+from flask import Flask, make_response, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -14,7 +14,20 @@ from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, fi
 load_dotenv()
 
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
-CORS(app, supports_credentials=True)
+# Configure session settings
+app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session duration
+
+CORS(app, supports_credentials=True, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173/", "https://broadwaycommunity.vercel.app/"],
+        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
@@ -28,34 +41,47 @@ def root():
 
 @app.get('/api/check_session')
 def check_session():
-    user = db.session.get(User, session.get('user_id'))
-    print(f'check session {session.get("user_id")}')
-    if user:
-        return user.to_dict(rules=['-password_hash']), 200
-    else:
-        return {"message": "No user logged in"}, 401
-
-@app.delete('/api/logout')
-def logout():
-    session.pop('user_id')
-    return { "message": "Logged out"}, 200
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"message": "No user logged in"}), 401
+        
+        user = User.query.get(user_id)
+        if not user:
+            session.pop('user_id', None)
+            return jsonify({"message": "User not found"}), 401
+            
+        return jsonify(user.to_dict(rules=['-password_hash'])), 200
+    except Exception as e:
+        print(f"Session check error: {str(e)}")
+        return jsonify({"message": "Session check failed"}), 500
 
 @app.post('/api/login')
 def login():
-    data = request.json
-    user = User.query.filter(User.email == data.get('email')).first()
-    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
-        session["user_id"] = user.id
-        # Add these session configurations
-        session.permanent = True
-        app.config.update(
-            SESSION_COOKIE_SECURE=True,
-            SESSION_COOKIE_HTTPONLY=True,
-            SESSION_COOKIE_SAMESITE='None'
-        )
-        return user.to_dict(), 200
-    else:
-        return { "error": "Invalid username or password" }, 401
+    try:
+        data = request.get_json()
+        if not data or 'email' not in data or 'password' not in data:
+            return jsonify({"error": "Missing email or password"}), 400
+
+        user = User.query.filter(User.email == data['email']).first()
+        if user and bcrypt.check_password_hash(user.password_hash, data['password']):
+            session.permanent = True  # Make the session permanent
+            session['user_id'] = user.id
+            return jsonify(user.to_dict(rules=['-password_hash'])), 200
+        
+        return jsonify({"error": "Invalid email or password"}), 401
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return jsonify({"error": "Login failed"}), 500
+
+@app.delete('/api/logout')
+def logout():
+    try:
+        session.clear()
+        return jsonify({"message": "Logged out successfully"}), 200
+    except Exception as e:
+        print(f"Logout error: {str(e)}")
+        return jsonify({"error": "Logout failed"}), 500
     
 @app.route('/api/user', methods=['GET', 'POST'])
 def user():
