@@ -16,7 +16,7 @@ load_dotenv()
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 # Configure session settings
 # app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session duration
 
