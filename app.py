@@ -42,12 +42,17 @@ def logout():
 
 @app.post('/api/login')
 def login():
-    print('login')
     data = request.json
     user = User.query.filter(User.email == data.get('email')).first()
     if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
         session["user_id"] = user.id
-        print("success")
+        # Add these session configurations
+        session.permanent = True
+        app.config.update(
+            SESSION_COOKIE_SECURE=True,
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE='None'
+        )
         return user.to_dict(), 200
     else:
         return { "error": "Invalid username or password" }, 401
