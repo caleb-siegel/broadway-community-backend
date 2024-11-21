@@ -80,6 +80,7 @@ class Event (db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     stubhub_category_id = db.Column(db.String)
+    todaytix_category_id = db.Column(db.String)
     venue_id = db.Column(db.Integer, db.ForeignKey("venue.id"), nullable=True)
     lottery_url = db.Column(db.String, nullable=True)
     show_duration = db.Column(db.String, nullable=True)

@@ -9,11 +9,13 @@ from datetime import datetime, timedelta
 import os
 from db import db, app
 from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets
+from todaytix import todaytix_fetch
 
 # Load the .env file if present (for local development)
 load_dotenv()
 
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
+
 # Configure session settings
 # app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
 # app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -192,6 +194,16 @@ def refresh_individual_ticket_data(id):
     try:
         event = db.session.query(Event).filter(Event.id == id).first()
         data = fetch_stubhub_data([event])
+        response = make_response(data,200)
+        return response
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.route('/api/fetch_todaytix/<int:id>', methods=['POST'])
+def fetch_today_tix_data(id):
+    try:
+        event = db.session.query(Event).filter(Event.id == id).first()
+        data = todaytix_fetch(event.todaytix_category_id)
         response = make_response(data,200)
         return response
     except Exception as e:
