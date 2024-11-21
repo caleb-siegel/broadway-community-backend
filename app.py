@@ -199,7 +199,7 @@ def refresh_individual_ticket_data(id):
     except Exception as e:
         return {"error": str(e)}, 500
 
-@app.route('/api/fetch_todaytix/<int:id>', methods=['POST'])
+@app.route('/api/fetch_todaytix/<int:id>', methods=['GET'])
 def fetch_today_tix_data(id):
     try:
         event = db.session.query(Event).filter(Event.id == id).first()
