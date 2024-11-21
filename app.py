@@ -206,7 +206,7 @@ def fetch_today_tix_data(id):
         data = todaytix_fetch(event.todaytix_category_id)
         print(data)
         today_tix_price = data["data"]["fromPrice"]["value"]
-        response = make_response(today_tix_price,200)
+        response = make_response({"today_tix_price": today_tix_price}, 200)
         return response
     except Exception as e:
         return {"error": str(e)}, 500
