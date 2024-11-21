@@ -205,7 +205,6 @@ def fetch_today_tix_data(id):
     try:
         event = db.session.query(Event).filter(Event.id == id).first()
         data = todaytix_fetch(event.todaytix_category_id)
-        print(data)
         today_tix_price = data["data"]["fromPrice"]["value"]
         response = make_response({"today_tix_price": today_tix_price}, 200)
         return response
