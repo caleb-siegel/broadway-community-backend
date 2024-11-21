@@ -69,6 +69,7 @@ def login():
         if user and bcrypt.check_password_hash(user.password_hash, data['password']):
             session.permanent = True  # Make the session permanent
             session['user_id'] = user.id
+            print(f'session is {session} and session[user_id] is {session['user_id']}')
             return jsonify(user.to_dict(rules=['-password_hash'])), 200
         
         return jsonify({"error": "Invalid email or password"}), 401
