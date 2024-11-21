@@ -26,8 +26,10 @@ def todaytix_fetch(id):
 
         response = requests.get(url, headers=headers)
 
-        data = response.json()
-
-        today_tix_price = data["data"]["fromPrice"]["value"]
-
-        return today_tix_price
+        # today_tix_price = data["data"]["fromPrice"]["value"]
+    
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f'Failed to fetch tickets from {url}: {response.status_code}, {response.text}')
+            return None
