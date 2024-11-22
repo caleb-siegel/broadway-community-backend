@@ -130,8 +130,7 @@ def get_event_names():
         events = []
         for event in Event.query.all():
             event_name = event.name
-            event_dict = event_name.to_dict()
-            events.append(event_dict)
+            events.append(event_name)
 
         response = make_response(events,200)
 
@@ -187,8 +186,7 @@ def get_category_names():
         categories = []
         for category in Category.query.all():
             category_name = category.name
-            category_dict = category_name.to_dict()
-            categories.append(category_dict)
+            categories.append(category_name)
 
         response = make_response(categories,200)
 
