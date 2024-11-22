@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
+from flask_session import Session
 import json
 from datetime import datetime, timedelta
 import os
@@ -17,19 +18,26 @@ load_dotenv()
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # Configure session settings
-app.config['SESSION_COOKIE_SECURE'] = False  # For HTTPS
+# app.config['SESSION_COOKIE_SECURE'] = False  # For HTTPS
 # app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session duration
+# app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session duration
 
 CORS(app, supports_credentials=True, resources={
     r"/api/*": {
         "origins": ["http://localhost:5173", "https://broadwaycommunity.vercel.app"],
-        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Accept", "Authorization"],
-        "supports_credentials": True
+        "supports_credentials": True,
     }
 })
+
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = False  # True for HTTPS
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+
+Session(app)
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
@@ -60,22 +68,16 @@ def check_session():
 
 @app.post('/api/login')
 def login():
-    try:
-        data = request.get_json()
-        if not data or 'email' not in data or 'password' not in data:
-            return jsonify({"error": "Missing email or password"}), 400
-
-        user = User.query.filter(User.email == data['email']).first()
-        if user and bcrypt.check_password_hash(user.password_hash, data['password']):
-            session.permanent = True  # Make the session permanent
-            session['user_id'] = user.id
-            print(f'session is {session} and session[user_id] is {session["user_id"]}')
-            return jsonify(user.to_dict(rules=['-password_hash'])), 200
-        
-        return jsonify({"error": "Invalid email or password"}), 401
-    except Exception as e:
-        print(f"Login error: {str(e)}")
-        return jsonify({"error": "Login failed"}), 500
+    print('login')
+    data = request.json
+    user = User.query.filter(User.email == data.get('email')).first()
+    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
+        session["user_id"] = user.id
+        print("success")
+        print(session)
+        return user.to_dict(), 200
+    else:
+        return { "error": "Invalid username or password" }, 401
 
 @app.delete('/api/logout')
 def logout():
@@ -122,6 +124,19 @@ def get_events():
 
         return response
 
+@app.route('/api/event_names', methods=['GET', 'POST'])
+def get_event_names():
+    if request.method == 'GET':
+        events = []
+        for event in Event.query.all():
+            event_name = event.name
+            event_dict = event_name.to_dict()
+            events.append(event_dict)
+
+        response = make_response(events,200)
+
+        return response
+
 @app.route('/api/events/<int:id>', methods=['GET','POST'])
 def get_event(id):
     if request.method == 'GET':
@@ -160,6 +175,19 @@ def get_categories():
         categories = []
         for category in Category.query.order_by(Category.id.desc()).all():
             category_dict = category.to_dict()
+            categories.append(category_dict)
+
+        response = make_response(categories,200)
+
+        return response
+    
+@app.route('/api/category_names', methods=['GET', 'POST'])
+def get_category_names():
+    if request.method == 'GET':
+        categories = []
+        for category in Category.query.all():
+            category_name = category.name
+            category_dict = category_name.to_dict()
             categories.append(category_dict)
 
         response = make_response(categories,200)

@@ -41,6 +41,9 @@ class Event_Preference (db.Model, SerializerMixin):
     start_date = db.Column(db.Date, default=date.today, nullable=True)
     end_date = db.Column(db.Date, default=date.today, nullable=True)
     show_time = db.Column(db.Time, default=time(0, 0), nullable=True)
+    send_email = db.Column(db.Boolean, default=False)
+    send_sms = db.Column(db.Boolean, default=False)
+    send_push = db.Column(db.Boolean, default=False)
 
     user = db.relationship("User", back_populates="event_preferences")
     event = db.relationship("Event", back_populates="event_preferences")
@@ -57,6 +60,9 @@ class Category_Preference (db.Model, SerializerMixin):
     start_date = db.Column(db.Date, default=date.today, nullable=True)
     end_date = db.Column(db.Date, default=date.today, nullable=True)
     show_time = db.Column(db.Time, default=time(0, 0), nullable=True)
+    send_email = db.Column(db.Boolean, default=False)
+    send_sms = db.Column(db.Boolean, default=False)
+    send_push = db.Column(db.Boolean, default=False)
 
     user = db.relationship("User", back_populates="category_preferences")
     category = db.relationship("Category", back_populates="category_preferences")
