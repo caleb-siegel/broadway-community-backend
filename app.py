@@ -37,7 +37,7 @@ app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config["SESSION_COOKIE_SECURE"] = False  # True for HTTPS
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
-Session(app)
+# Session(app)
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
