@@ -4,7 +4,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
-from flask_session import Session
+# from flask_session import Session
 import json
 from datetime import datetime, timedelta
 import os
