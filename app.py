@@ -156,6 +156,33 @@ def get_event_preferences():
 
         return response
 
+    elif request.method == 'POST':
+        event_name=request.json.get("event_name")
+
+        event = Event.query.filter(Event.name == event_name).first()
+
+
+        new_preference = Event_Preference(
+            user_id=request.json.get("user_id"),
+            event_id=event.id
+            price=request.json.get("price"),
+            start_date=request.json.get("start_date"),
+            end_date=request.json.get("end_date"),
+            show_time=request.json.get("show_time"),
+            send_email=request.json.get("send_email"),
+            send_sms=request.json.get("send_sms"),
+            send_push=request.json.get("send_push"),
+        )
+
+        db.session.add(new_preference)
+        db.session.commit()
+        
+        new_preference_dict = new_preference.to_dict()
+
+        response = make_response(new_preference_dict, 201)
+
+        return response
+
 @app.route('/api/category_preferences', methods=['GET', 'POST'])
 def get_category_preferences():
     if request.method == 'GET':
