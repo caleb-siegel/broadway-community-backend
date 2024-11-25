@@ -183,6 +183,15 @@ def get_event_preferences():
 
         return response
 
+@app.route('/api/event_preferences/<int:id>/', methods=['DELETE'])
+def delete_event_preferences(id):
+    preference = db.session.get(Event_Preference, id)
+    if not preference:
+        return {"error": f"Event Preference with id {id} not found"}, 404
+    db.session.delete(preference)
+    db.session.commit()
+    return {}, 202
+
 @app.route('/api/category_preferences', methods=['GET', 'POST'])
 def get_category_preferences():
     if request.method == 'GET':
@@ -220,6 +229,15 @@ def get_category_preferences():
         response = make_response(new_preference_dict, 201)
 
         return response
+
+@app.route('/api/category_preferences/<int:id>/', methods=['DELETE'])
+def delete_category_preferences(id):
+    preference = db.session.get(Category_Preference, id)
+    if not preference:
+        return {"error": f"Category Preference with id {id} not found"}, 404
+    db.session.delete(preference)
+    db.session.commit()
+    return {}, 202
 
 @app.route('/api/categories', methods=['GET', 'POST'])
 def get_categories():
