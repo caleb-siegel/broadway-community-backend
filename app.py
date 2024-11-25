@@ -185,11 +185,20 @@ def get_event_preferences():
 
 @app.route('/api/event_preferences/<int:id>/', methods=['DELETE'])
 def delete_event_preferences(id):
-    preference = db.session.get(Event_Preference, id)
-    if not preference:
-        return {"error": f"Event Preference with id {id} not found"}, 404
-    db.session.delete(preference)
-    db.session.commit()
+    if request.method == 'OPTIONS':
+        response = make_response('', 204)
+        response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin')
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+    
+    if request.method == 'DELETE':
+    
+        preference = db.session.get(Event_Preference, id)
+        if not preference:
+            return {"error": f"Event Preference with id {id} not found"}, 404
+        db.session.delete(preference)
+        db.session.commit()
     return {}, 202
 
 @app.route('/api/category_preferences', methods=['GET', 'POST'])
