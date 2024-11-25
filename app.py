@@ -164,7 +164,7 @@ def get_event_preferences():
 
         new_preference = Event_Preference(
             user_id=request.json.get("user_id"),
-            event_id=event.id
+            event_id=event.id,
             price=request.json.get("price"),
             start_date=request.json.get("start_date"),
             end_date=request.json.get("end_date"),
@@ -192,6 +192,32 @@ def get_category_preferences():
             category_preferences.append(preference_dict)
 
         response = make_response(category_preferences,200)
+
+        return response
+    
+    elif request.method == 'POST':
+        category_name=request.json.get("category_name")
+
+        category = Category.query.filter(Category.name == category_name).first()
+
+        new_preference = Category_Preference(
+            user_id=request.json.get("user_id"),
+            category_id=category.id,
+            price=request.json.get("price"),
+            start_date=request.json.get("start_date"),
+            end_date=request.json.get("end_date"),
+            show_time=request.json.get("show_time"),
+            send_email=request.json.get("send_email"),
+            send_sms=request.json.get("send_sms"),
+            send_push=request.json.get("send_push"),
+        )
+
+        db.session.add(new_preference)
+        db.session.commit()
+        
+        new_preference_dict = new_preference.to_dict()
+
+        response = make_response(new_preference_dict, 201)
 
         return response
 
