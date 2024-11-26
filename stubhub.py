@@ -178,6 +178,11 @@ def fetch_stubhub_data(events):
 
     if not events:
         return {"error": f"Couldn't fetch events"}, 404
+    
+    # If we are only fetching one event, scrape the site to find the ticket info
+    if len(events) == 1:
+        add_scraped_data = True
+
     for event in events:
         # if there is no associated venue with the event, assign an empty string to lat and long values
         if event.venue:
@@ -202,7 +207,8 @@ def fetch_stubhub_data(events):
             continue
         else:
             cheapest_ticket = find_cheapest_ticket(events_data)
-            seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
+            if add_scraped_data:
+                seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
 
             start_date = cheapest_ticket["start_date"]
             non_formatted_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
@@ -232,10 +238,10 @@ def fetch_stubhub_data(events):
                     sortable_date = non_formatted_datetime,
                     link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
                     updated_at = datetime.now(),
-                    location = seat_info.location if seat_info else None,
-                    row = seat_info.row if seat_info else None,
-                    quantity = seat_info.quantity if seat_info else None,
-                    note = seat_info.note if seat_info else None,
+                    location = seat_info["location"] if (seat_info and add_scraped_data) else None,
+                    row = seat_info["row"] if (seat_info and add_scraped_data) else None,
+                    quantity = seat_info["quantity"] if (seat_info and add_scraped_data) else None,
+                    note = seat_info["note"] if (seat_info and add_scraped_data) else None,
                 )
                 db.session.add(new_event_info)
 
@@ -264,10 +270,10 @@ def fetch_stubhub_data(events):
                 event_info_variable.sortable_date = non_formatted_datetime,
                 event_info_variable.link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
                 event_info_variable.updated_at = datetime.now(),
-                event_info_variable.location = seat_info.location if seat_info else None,
-                event_info_variable.row = seat_info.row if seat_info else None,
-                event_info_variable.quantity = seat_info.quantity if seat_info else None,
-                event_info_variable.note = seat_info.note if seat_info else None,
+                event_info_variable.location = seat_info["location"] if (seat_info and add_scraped_data) else None,
+                event_info_variable.row = seat_info["row"] if (seat_info and add_scraped_data) else None,
+                event_info_variable.quantity = seat_info["quantity"] if (seat_info and add_scraped_data) else None,
+                event_info_variable.note = seat_info["note"] if (seat_info and add_scraped_data) else None,
 
                 # print(f"tickets for {event_info_variable.id} updated successfully")
                 event_data.append(event_info_variable.to_dict())

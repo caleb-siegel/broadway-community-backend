@@ -291,6 +291,7 @@ def refresh_ticket_data_category(category):
     try:
         events = db.session.query(Event).join(Category).filter(Category.name == category).all()
         data = fetch_stubhub_data(events)
+        print(data)
         response = make_response(data,200)
         return response
     except Exception as e:
