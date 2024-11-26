@@ -21,6 +21,7 @@ psycopg2-binary = "*"
 requests = "*"
 apscheduler = "*"
 sendgrid = "*"
+selenium = "*"
 
 [dev-packages]
 
