@@ -114,6 +114,10 @@ class Event_Info (db.Model, SerializerMixin):
     sortable_date = db.Column(db.DateTime, nullable=True)
     link = db.Column(db.String)
     updated_at = db.Column(db.DateTime, default=date.today, nullable=True)
+    location = db.Column(db.String, nullable=True)
+    row = db.Column(db.String, nullable=True)
+    quantity = db.Column(db.String, nullable=True)
+    note = db.Column(db.String, nullable=True)
 
     event = db.relationship("Event", back_populates="event_info")
 

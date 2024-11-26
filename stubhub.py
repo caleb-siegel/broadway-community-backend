@@ -8,6 +8,7 @@ import sendgrid
 from sendgrid.helpers.mail import Mail
 from sqlalchemy.orm import joinedload
 from collections import defaultdict
+from stubhub_scraper import scrape_with_selenium
 
 
 # Load the .env file if present (for local development)
@@ -201,6 +202,7 @@ def fetch_stubhub_data(events):
             continue
         else:
             cheapest_ticket = find_cheapest_ticket(events_data)
+            seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
 
             start_date = cheapest_ticket["start_date"]
             non_formatted_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
@@ -230,6 +232,10 @@ def fetch_stubhub_data(events):
                     sortable_date = non_formatted_datetime,
                     link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
                     updated_at = datetime.now(),
+                    location = seat_info.location if seat_info else None,
+                    row = seat_info.row if seat_info else None,
+                    quantity = seat_info.quantity if seat_info else None,
+                    note = seat_info.note if seat_info else None,
                 )
                 db.session.add(new_event_info)
 
