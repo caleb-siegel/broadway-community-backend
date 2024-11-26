@@ -22,6 +22,7 @@ requests = "*"
 apscheduler = "*"
 sendgrid = "*"
 selenium = "*"
+webdriver_manager = "*"
 
 [dev-packages]
 
