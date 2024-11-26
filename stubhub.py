@@ -263,7 +263,11 @@ def fetch_stubhub_data(events):
                 event_info_variable.formatted_date = complete_formatted_date
                 event_info_variable.sortable_date = non_formatted_datetime,
                 event_info_variable.link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
-                event_info_variable.updated_at = datetime.now()
+                event_info_variable.updated_at = datetime.now(),
+                event_info_variable.location = seat_info.location if seat_info else None,
+                event_info_variable.row = seat_info.row if seat_info else None,
+                event_info_variable.quantity = seat_info.quantity if seat_info else None,
+                event_info_variable.note = seat_info.note if seat_info else None,
 
                 # print(f"tickets for {event_info_variable.id} updated successfully")
                 event_data.append(event_info_variable.to_dict())
