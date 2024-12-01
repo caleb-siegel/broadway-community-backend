@@ -1,7 +1,7 @@
 from flask import Flask, make_response, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
 # from flask_session import Session
@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timedelta
 import os
 from db import db, app
-from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets
+from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, fetch_stubhub_data_with_dates
 from todaytix import todaytix_fetch
 
 # Load the .env file if present (for local development)
@@ -23,14 +23,16 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 # app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
 # app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session duration
 
-CORS(app, supports_credentials=True, resources={
-    r"/api/*": {
+
+CORS(app, 
+    supports_credentials=True, 
+    resources={r"/api/*": {
         "origins": ["http://localhost:5173", "https://broadwaycommunity.vercel.app"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Accept", "Authorization"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Accept", "Authorization", "Origin"],
         "supports_credentials": True,
-    }
-})
+    }},
+)
 
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
@@ -183,23 +185,26 @@ def get_event_preferences():
 
         return response
 
-@app.route('/api/event_preferences/<int:id>/', methods=['DELETE'])
-def delete_event_preferences(id):
-    if request.method == 'OPTIONS':
-        response = make_response('', 204)
-        response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin')
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        return response
+@app.route('/api/event_preferences/<int:id>', methods=['PATCH', 'DELETE'])
+def edit_event_preferences(id):
+    preference = db.session.get(Event_Preference, id)
+    if not preference:
+        return {"error": f"Event Preference with id {id} not found"}, 404
     
-    if request.method == 'DELETE':
-    
-        preference = db.session.get(Event_Preference, id)
-        if not preference:
-            return {"error": f"Event Preference with id {id} not found"}, 404
+    if request.method == 'DELETE':    
         db.session.delete(preference)
         db.session.commit()
-    return {}, 202
+        return {}, 202
+
+    elif request.method == 'PATCH':
+        try:
+            data = request.json
+            setattr(preference, 'price', data['price'])
+            db.session.add(preference)
+            db.session.commit()
+            return preference.to_dict(), 200
+        except Exception as e:
+            return {"error": f'{e}'}
 
 @app.route('/api/category_preferences', methods=['GET', 'POST'])
 def get_category_preferences():
@@ -239,14 +244,26 @@ def get_category_preferences():
 
         return response
 
-@app.route('/api/category_preferences/<int:id>/', methods=['DELETE'])
-def delete_category_preferences(id):
+@app.route('/api/category_preferences/<int:id>', methods=['PATCH', 'DELETE'])
+def edit_category_preferences(id):
     preference = db.session.get(Category_Preference, id)
     if not preference:
         return {"error": f"Category Preference with id {id} not found"}, 404
-    db.session.delete(preference)
-    db.session.commit()
-    return {}, 202
+
+    if request.method == 'DELETE':
+        db.session.delete(preference)
+        db.session.commit()
+        return {}, 202
+
+    elif request.method == 'PATCH':
+        try:
+            data = request.json
+            setattr(preference, 'price', data['price'])
+            db.session.add(preference)
+            db.session.commit()
+            return preference.to_dict(), 200
+        except Exception as e:
+            return {"error": f'{e}'}
 
 @app.route('/api/categories', methods=['GET', 'POST'])
 def get_categories():
@@ -290,8 +307,10 @@ def refresh_stubhub_data():
 def refresh_ticket_data_category(category):
     try:
         events = db.session.query(Event).join(Category).filter(Category.name == category).all()
+
+        if not events:
+            return {"error": "No events found for the given category"}, 404
         data = fetch_stubhub_data(events)
-        print(data)
         response = make_response(data,200)
         return response
     except Exception as e:
@@ -302,6 +321,22 @@ def refresh_individual_ticket_data(id):
     try:
         event = db.session.query(Event).filter(Event.id == id).first()
         data = fetch_stubhub_data([event])
+        response = make_response(data,200)
+        return response
+    except Exception as e:
+        return {"error": str(e)}, 500
+    
+@app.route('/api/fetch_tickets_dates/<string:category>', methods=['POST'])
+def refresh_ticket_data_by_dates(category):
+    try:
+        data = request.get_json()
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        events = db.session.query(Event).join(Category).filter(Category.name == category).all()
+        
+        data = fetch_stubhub_data_with_dates(events, start_date, end_date)
+        
         response = make_response(data,200)
         return response
     except Exception as e:

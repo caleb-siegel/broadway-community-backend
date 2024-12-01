@@ -155,27 +155,63 @@ def get_broadway_tickets(token, endpoint):
         return None
     
 # function to use the received data to find the cheapest ticket in the category
-def find_cheapest_ticket(events):
+def find_cheapest_ticket(events, start_date=None, end_date=None):
+    
     cheapest_ticket = None
-    if not events["_embedded"]["items"]: 
+    
+    # Check if there are any events to process
+    if not events["_embedded"]["items"]:
         return None
     
     for event in events["_embedded"]["items"]:
-        if event["min_ticket_price"] is None:
+        # Skip events without a valid ticket price
+        min_ticket_price = event["min_ticket_price"]
+        
+        if min_ticket_price is None:
             continue
-        else:
-            min_ticket_price = event["min_ticket_price"]["amount"]
-            if min_ticket_price is not None:
-                if cheapest_ticket is None or min_ticket_price < cheapest_ticket["min_ticket_price"]["amount"]:
+
+        within_date_range = True
+        
+        if start_date or end_date:
+            # Get and format the event date
+            
+            event_date_str = event["start_date"]
+            
+            if not event_date_str:
+                continue
+            try:
+                # Parse the ISO 8601 datetime string
+                event_date = datetime.fromisoformat(event_date_str).date()
+            except ValueError:
+                # Skip this event if the date format is incorrect
+                print(f"Skipping event due to invalid date format: {event_date_str}")
+                continue
+
+            # Determine if the event date is within the specified range        
+            if start_date:    
+                start_date_formatted = datetime.fromisoformat(start_date).date()
+                
+                if event_date < start_date_formatted:
+                    within_date_range = False
+            if end_date:
+                end_date_formatted = datetime.fromisoformat(end_date).date()
+                if event_date > end_date_formatted:
+                    within_date_range = False
+        
+        # Update the cheapest ticket if within range and price is lower
+        if within_date_range:
+            ticket_price_amount = min_ticket_price["amount"]
+            if ticket_price_amount is not None:
+                if cheapest_ticket is None or ticket_price_amount < cheapest_ticket["min_ticket_price"]["amount"]:
                     cheapest_ticket = event
     
-    return cheapest_ticket if cheapest_ticket else "No tickets found"
+    return cheapest_ticket
 
 # function to call stubhub and update the database with the new data
 def fetch_stubhub_data(events):
     
     token = get_stubhub_token(client_id, client_secret)
-
+    
     if not events:
         return {"error": f"Couldn't fetch events"}, 404
     
@@ -201,12 +237,15 @@ def fetch_stubhub_data(events):
             updated_at = event.event_info[0].updated_at
         
         endpoint = get_category_link(event.stubhub_category_id, "", latitude, longitude, 100)
+        
         events_data = get_broadway_tickets(token, endpoint)
+        
         event_data = []
         if not events_data["_embedded"]["items"]:
             continue
         else:
             cheapest_ticket = find_cheapest_ticket(events_data)
+
             # if add_scraped_data:
             #     seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
 
@@ -237,6 +276,8 @@ def fetch_stubhub_data(events):
                     formatted_date = complete_formatted_date,
                     sortable_date = non_formatted_datetime,
                     link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
+                    average_denominator = 1,
+                    average_lowest_price = round(cheapest_ticket["min_ticket_price"]["amount"]),
                     updated_at = datetime.now(),
                     # location = seat_info["location"] if (seat_info and add_scraped_data) else None,
                     # row = seat_info["row"] if (seat_info and add_scraped_data) else None,
@@ -247,9 +288,10 @@ def fetch_stubhub_data(events):
 
                 print(f"tickets for {new_event_info.name} added to the database")
                 event_data.append(new_event_info.to_dict())
-
+                
                 preference_notification(old_price, new_event_info.price, event.name, event.event_preferences, new_event_info)
                 preference_notification(old_price, new_event_info.price, event.name, event.category.category_preferences, new_event_info)
+                
                 # db.session.commit()
 
             # if database price is lower than the scraped stubhub minimum price
@@ -258,11 +300,13 @@ def fetch_stubhub_data(events):
             #     continue
             else:
                 old_price = event.event_info[0].price
+                new_price = round(cheapest_ticket["min_ticket_price"]["amount"])
+
                 # patch entry with new info
                 event_info_variable = event.event_info[0]
                 event_info_variable.name = cheapest_ticket["name"]
                 event_info_variable.event_id = event.id
-                event_info_variable.price = round(cheapest_ticket["min_ticket_price"]["amount"])
+                event_info_variable.price = new_price
                 event_info_variable.event_time = non_formatted_time
                 event_info_variable.event_date = non_formatted_date
                 event_info_variable.event_weekday = non_formatted_weekday
@@ -275,9 +319,17 @@ def fetch_stubhub_data(events):
                 # event_info_variable.quantity = seat_info["quantity"] if (seat_info and add_scraped_data) else None,
                 # event_info_variable.note = seat_info["note"] if (seat_info and add_scraped_data) else None,
 
+                # if the lowest price is different, update the average
+                if old_price != new_price:
+                    new_count = event.event_info[0].average_denominator + 1
+                    average = ((event.event_info[0].average_lowest_price * (new_count - 1)) + new_price) / (new_count)
+                    
+                    event_info_variable.average_denominator = new_count,
+                    event_info_variable.average_lowest_price = average,
+
                 # print(f"tickets for {event_info_variable.id} updated successfully")
                 event_data.append(event_info_variable.to_dict())
-
+                
                 preference_notification(old_price, event_info_variable.price, event.name, event.event_preferences, event_info_variable)
                 preference_notification(old_price, event_info_variable.price, event.name, event.category.category_preferences, event_info_variable)
 
@@ -287,6 +339,72 @@ def fetch_stubhub_data(events):
 
     return event_data
         
+def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
+    token = get_stubhub_token(client_id, client_secret)
+
+    if not events:
+        return {"error": f"Couldn't fetch events"}, 404
+    
+    # If we are only fetching one event, scrape the site to find the ticket info
+    # if len(events) == 1:
+    #     add_scraped_data = True
+
+    res = []
+    for event in events:
+        
+        # if there is no associated venue with the event, assign an empty string to lat and long values
+        if event.venue:
+            latitude = event.venue.latitude
+            longitude = event.venue.longitude
+        else:
+            latitude = ""
+            longitude = ""
+        
+        # address edge case of updated_at variable value from database
+        if not event.event_info:
+            updated_at = ""
+        elif not event.event_info[0].updated_at:
+            updated_at = ""
+        else:
+            updated_at = event.event_info[0].updated_at
+        
+        endpoint = get_category_link(event.stubhub_category_id, "", latitude, longitude, 100)
+        events_data = get_broadway_tickets(token, endpoint)
+        
+        event_data = []
+        if not events_data["_embedded"]["items"]:
+            continue
+        else:
+            cheapest_ticket = find_cheapest_ticket(events_data, start_date, end_date)
+            
+            if cheapest_ticket is not None:
+
+                start_date_var = cheapest_ticket["start_date"]
+                non_formatted_datetime = datetime.strptime(start_date_var, "%Y-%m-%dT%H:%M:%S%z")
+                formatted_date = non_formatted_datetime.strftime("%a, %b %-d, %Y %-I%p")
+                complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
+                
+                cheapest_event_info = {
+                    "event_info": [
+                        {
+                            "name": cheapest_ticket["name"],
+                            "price": round(cheapest_ticket["min_ticket_price"]["amount"]),
+                            "formatted_date": complete_formatted_date,
+                            # "sortable_date": non_formatted_datetime,
+                            "link": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
+                            # location = seat_info["location"] if (seat_info and add_scraped_data) else None,
+                            # row = seat_info["row"] if (seat_info and add_scraped_data) else None,
+                            # quantity = seat_info["quantity"] if (seat_info and add_scraped_data) else None,
+                            # note = seat_info["note"] if (seat_info and add_scraped_data) else None,
+                        }
+                    ],
+                    "id": event.id,
+                    "name": event.name,
+                    "category_id": event.category_id,
+                }            
+                res.append(cheapest_event_info)
+    return res
+
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(fetch_stubhub_data, 'interval', minutes=15)
 # scheduler.start()

@@ -113,6 +113,8 @@ class Event_Info (db.Model, SerializerMixin):
     formatted_date = db.Column(db.String, nullable=True)
     sortable_date = db.Column(db.DateTime, nullable=True)
     link = db.Column(db.String)
+    average_denominator = db.Column(db.Integer, nullable=True)
+    average_lowest_price = db.Column(db.Numeric(scale=2), nullable=True)
     updated_at = db.Column(db.DateTime, default=date.today, nullable=True)
     # location = db.Column(db.String, nullable=True)
     # row = db.Column(db.String, nullable=True)
