@@ -5,7 +5,7 @@ from flask_cors import CORS, cross_origin
 from flask_session import Session
 from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
-# from flask_session import Session
+from flask_session import Session
 import json
 from datetime import datetime, timedelta
 import os
@@ -35,13 +35,13 @@ CORS(app,
     }},
 )
 
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config["SESSION_COOKIE_SECURE"] = True  # True for HTTPS
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+# app.config["SESSION_TYPE"] = "filesystem"
+# app.config["SESSION_COOKIE_SAMESITE"] = "None"
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config["SESSION_COOKIE_SECURE"] = True
+# app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
-Session(app)
+# Session(app)
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
