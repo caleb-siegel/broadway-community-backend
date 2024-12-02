@@ -37,6 +37,7 @@ CORS(app,
 
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config["SESSION_COOKIE_SECURE"] = False  # True for HTTPS
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
