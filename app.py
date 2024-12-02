@@ -35,7 +35,7 @@ CORS(app,
     }},
 )
 
-app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_TYPE"] = "null"
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config["SESSION_COOKIE_SECURE"] = True
@@ -55,6 +55,7 @@ def root():
 
 @app.get('/api/check_session')
 def check_session():
+    print(f'check session {session.get("user_id")}')
     user = db.session.get(User, session.get('user_id'))
     print(f'check session {session.get("user_id")}')
     if user:
