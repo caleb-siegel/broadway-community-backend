@@ -37,7 +37,7 @@ CORS(app,
 
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
-app.config["SESSION_COOKIE_SECURE"] = False  # True for HTTPS
+app.config["SESSION_COOKIE_SECURE"] = True  # True for HTTPS
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
 Session(app)
@@ -75,6 +75,7 @@ def login():
     data = request.json
     user = User.query.filter(User.email == data.get('email')).first()
     if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
+        session.permanent = True
         session["user_id"] = user.id
         print("success")
         print(session)
