@@ -116,10 +116,10 @@ class Event_Info (db.Model, SerializerMixin):
     average_denominator = db.Column(db.Integer, nullable=True)
     average_lowest_price = db.Column(db.Numeric(scale=2), nullable=True)
     updated_at = db.Column(db.DateTime, default=date.today, nullable=True)
-    # location = db.Column(db.String, nullable=True)
-    # row = db.Column(db.String, nullable=True)
-    # quantity = db.Column(db.String, nullable=True)
-    # note = db.Column(db.String, nullable=True)
+    location = db.Column(db.String, nullable=True)
+    row = db.Column(db.String, nullable=True)
+    quantity = db.Column(db.String, nullable=True)
+    note = db.Column(db.String, nullable=True)
 
     event = db.relationship("Event", back_populates="event_info")
 

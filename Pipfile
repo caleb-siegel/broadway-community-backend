@@ -23,6 +23,7 @@ apscheduler = "*"
 sendgrid = "*"
 selenium = "*"
 webdriver_manager = "*"
+flask-session = "*"
 
 [dev-packages]
 

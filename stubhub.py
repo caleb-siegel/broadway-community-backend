@@ -217,7 +217,7 @@ def fetch_stubhub_data(events):
     
     # If we are only fetching one event, scrape the site to find the ticket info
     # if len(events) == 1:
-    #     add_scraped_data = True
+        # add_scraped_data = True
 
     for event in events:
         # if there is no associated venue with the event, assign an empty string to lat and long values
