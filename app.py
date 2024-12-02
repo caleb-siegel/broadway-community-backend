@@ -35,13 +35,13 @@ CORS(app,
     }},
 )
 
-# app.config["SESSION_TYPE"] = "filesystem"
-# app.config["SESSION_COOKIE_SAMESITE"] = "None"
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config["SESSION_COOKIE_SECURE"] = True
-# app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
-# Session(app)
+Session(app)
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
@@ -55,20 +55,12 @@ def root():
 
 @app.get('/api/check_session')
 def check_session():
-    try:
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({"message": "No user logged in"}), 401
-        
-        user = User.query.get(user_id)
-        if not user:
-            session.pop('user_id', None)
-            return jsonify({"message": "User not found"}), 401
-            
-        return jsonify(user.to_dict(rules=['-password_hash'])), 200
-    except Exception as e:
-        print(f"Session check error: {str(e)}")
-        return jsonify({"message": "Session check failed"}), 500
+    user = db.session.get(User, session.get('user_id'))
+    print(f'check session {session.get("user_id")}')
+    if user:
+        return user.to_dict(rules=['-password_hash']), 200
+    else:
+        return {"message": "No user logged in"}, 401
 
 @app.post('/api/login')
 def login():
@@ -78,6 +70,7 @@ def login():
     if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
         session.permanent = True
         session["user_id"] = user.id
+        print(f'sessions user_id: {session["user_id"]}')
         print("success")
         print(session)
         return user.to_dict(), 200
