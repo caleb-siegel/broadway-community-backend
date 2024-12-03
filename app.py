@@ -88,7 +88,9 @@ def login():
 def logout():
     try:
         session.clear()
-        return jsonify({"message": "Logged out successfully"}), 200
+        response = jsonify({"message": "Logged out successfully"})
+        response.set_cookie('session', '', expires=0)  # Clear session cookie
+        return response, 200
     except Exception as e:
         print(f"Logout error: {str(e)}")
         return jsonify({"error": "Logout failed"}), 500
