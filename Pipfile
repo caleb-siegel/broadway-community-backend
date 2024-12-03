@@ -24,6 +24,7 @@ sendgrid = "*"
 selenium = "*"
 webdriver_manager = "*"
 flask-session = "*"
+redis = "*"
 
 [dev-packages]
 

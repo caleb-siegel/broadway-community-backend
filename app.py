@@ -6,6 +6,7 @@ from flask_session import Session
 from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
 from flask_session import Session
+from redis import Redis
 import json
 from datetime import datetime, timedelta
 import os
@@ -18,13 +19,7 @@ load_dotenv()
 
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
-# Configure session settings
-# app.config['SESSION_COOKIE_SECURE'] = False  # For HTTPS
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
-# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session duration
-
-
+# Enable CORS
 CORS(app, 
     supports_credentials=True, 
     resources={r"/api/*": {
@@ -35,12 +30,23 @@ CORS(app,
     }},
 )
 
-app.config["SESSION_TYPE"] = "null"
+# Configure Redis for sessions
+app.config["SESSION_TYPE"] = "redis"  # Use Redis as the session store
+app.config["SESSION_PERMANENT"] = True
+app.config["SESSION_USE_SIGNER"] = True  # Adds a layer of security to cookies
+app.config["SESSION_KEY_PREFIX"] = "flask-session:"  # Prefix for keys in Redis
+app.config["SESSION_REDIS"] = Redis(
+    host=os.getenv('REDIS_HOST'), 
+    port=int(os.getenv('REDIS_PORT')),  # Use environment variable or default port 6379
+    password=os.getenv('REDIS_PASSWORD'),  # Make sure to set this in your environment
+    ssl=True
+)
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
+# Initialize Flask-Session
 Session(app)
 
 bcrypt = Bcrypt(app)
