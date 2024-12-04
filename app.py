@@ -23,7 +23,7 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 CORS(app, 
     supports_credentials=True, 
     resources={r"/api/*": {
-        "origins": ["http://localhost:5173", "https://broadwaycommunity.vercel.app"],
+        "origins": ["http://localhost:5173", "https://broadwaycommunity.vercel.app", "https://www.broadwaycommunity.vercel.app"],
         "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         "allow_headers": ["Content-Type", "Accept", "Authorization", "Origin"],
         "supports_credentials": True,
