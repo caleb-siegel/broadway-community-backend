@@ -61,8 +61,8 @@ def root():
 
 @app.get('/api/check_session')
 def check_session():
-    print(f'check session {session.get("user_id")}')
     user = db.session.get(User, session.get('user_id'))
+    print(user.name)
     print(f'check session {session.get("user_id")}')
     if user:
         return user.to_dict(rules=['-password_hash']), 200
