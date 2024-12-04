@@ -77,9 +77,7 @@ def login():
     if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
         session.permanent = True
         session["user_id"] = user.id
-        print(f'sessions user_id: {session["user_id"]}')
-        print("success")
-        print(session)
+        print(f'{user.first_name} {user.last_name} logged in')
         return user.to_dict(), 200
     else:
         return { "error": "Invalid username or password" }, 401
