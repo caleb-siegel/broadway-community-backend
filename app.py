@@ -48,7 +48,9 @@ app.config["SESSION_COOKIE_DOMAIN"] = None  # Let browser determine domain
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
 # Initialize Flask-Session
-Session(app)
+# Session(app)
+sess = Session()
+sess.init_app(app)
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
