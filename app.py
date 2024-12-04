@@ -36,12 +36,12 @@ app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_USE_SIGNER"] = True  # Adds a layer of security to cookies
 app.config["SESSION_KEY_PREFIX"] = "flask-session:"  # Prefix for keys in Redis
 app.config["SESSION_REDIS"] = Redis(
-    host=os.getenv('REDIS_HOST'), 
-    port=int(os.getenv('REDIS_PORT')),  # Use environment variable or default port 6379
-    password=os.getenv('REDIS_PASSWORD'),  # Make sure to set this in your environment
+    host=os.getenv('REDIS_HOST'),
+    port=int(os.getenv('REDIS_PORT')),
+    password=os.getenv('REDIS_PASSWORD'),
     ssl=True
 )
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_DOMAIN"] = None  # Let browser determine domain
