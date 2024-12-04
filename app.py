@@ -33,7 +33,7 @@ CORS(app,
 # Configure Redis for sessions
 app.config["SESSION_TYPE"] = "redis"  # Use Redis as the session store
 app.config["SESSION_PERMANENT"] = True
-app.config["SESSION_USE_SIGNER"] = True  # Adds a layer of security to cookies
+app.config["SESSION_USE_SIGNER"] = False  # Adds a layer of security to cookies
 app.config["SESSION_KEY_PREFIX"] = "flask-session:"  # Prefix for keys in Redis
 app.config["SESSION_REDIS"] = Redis(
     host=os.getenv('REDIS_HOST'),
@@ -42,8 +42,8 @@ app.config["SESSION_REDIS"] = Redis(
     ssl=True
 )
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config["SESSION_COOKIE_SECURE"] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = False
+app.config["SESSION_COOKIE_SECURE"] = False
 app.config["SESSION_COOKIE_DOMAIN"] = None  # Let browser determine domain
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
