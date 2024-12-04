@@ -44,6 +44,7 @@ app.config["SESSION_REDIS"] = Redis(
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_DOMAIN"] = None  # Let browser determine domain
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
 # Initialize Flask-Session
