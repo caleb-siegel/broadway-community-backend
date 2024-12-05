@@ -59,7 +59,7 @@ def preference_notification(old_price, current_price, name, preferences, event_i
                     to_emails=preference.user.email,
                     subject=f'Price Alert: {name} ${current_price}',
                     html_content=f"""
-            <strong>{name}</strong> is selling at <strong>${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it ever dropped below ${preference_price}<br><br>
+            <strong>{name}</strong> is selling at <strong>${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${preference_price}.<br><br>
             
             This show is on {event_info.formatted_date}.<br><br>
             
