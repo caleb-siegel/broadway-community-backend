@@ -92,6 +92,7 @@ class Event (db.Model, SerializerMixin):
     show_duration = db.Column(db.String, nullable=True)
     category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
     image = db.Column(db.String, nullable=True)
+    closed = db.Column(db.Boolean, default=False)
 
     event_preferences = db.relationship("Event_Preference", back_populates="event")
     event_info = db.relationship("Event_Info", back_populates="event")
