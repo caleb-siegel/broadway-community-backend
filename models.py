@@ -10,7 +10,7 @@ from datetime import date, time
 class User (db.Model, SerializerMixin):
     __tablename__ = "user"
     
-    serialize_rules = ["-event_preferences.user", "-category_preferences.user"]
+    serialize_rules = ["-event_alerts.user", "-category_alerts.user"]
     
     id = db.Column(db.Integer, primary_key=True)
     password_hash = db.Column(db.String)
@@ -19,8 +19,8 @@ class User (db.Model, SerializerMixin):
     email = db.Column(db.String)
     phone_number = db.Column(db.String, nullable=True)
 
-    event_preferences = db.relationship("Event_Preference", back_populates="user")
-    category_preferences = db.relationship("Category_Preference", back_populates="user")
+    event_alerts = db.relationship("Event_Alert", back_populates="user")
+    category_alerts = db.relationship("Category_Alert", back_populates="user")
 
 class Token (db.Model, SerializerMixin):
     __tablename__ = "token"
@@ -29,10 +29,10 @@ class Token (db.Model, SerializerMixin):
     access_token = db.Column(db.String)
     expires_at = db.Column(db.DateTime)
 
-class Event_Preference (db.Model, SerializerMixin):
-    __tablename__ = "event_preference"
+class Event_Alert (db.Model, SerializerMixin):
+    __tablename__ = "event_alert"
     
-    serialize_rules = ["-user.event_preferences", "-event.event_preferences"]
+    serialize_rules = ["-user.event_alerts", "-event.event_alerts"]
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
@@ -45,13 +45,13 @@ class Event_Preference (db.Model, SerializerMixin):
     send_sms = db.Column(db.Boolean, default=False)
     send_push = db.Column(db.Boolean, default=False)
 
-    user = db.relationship("User", back_populates="event_preferences")
-    event = db.relationship("Event", back_populates="event_preferences")
+    user = db.relationship("User", back_populates="event_alert")
+    event = db.relationship("Event", back_populates="event_alerts")
 
-class Category_Preference (db.Model, SerializerMixin):
-    __tablename__ = "category_preference"
+class Category_Alert (db.Model, SerializerMixin):
+    __tablename__ = "category_alert"
     
-    serialize_rules = ["-user.event_preferences", "-user.category_preferences", "-category.category_preferences", "-category.event.event_preferences", "-category.event.category", "-category.event.category_id", "-category.event.image", "-category.event.lottery_url", "-category.event.name", "-category.event.show_duration"]
+    serialize_rules = ["-user.event_alerts", "-user.category_alerts", "-category.category_alerts", "-category.event.event_alerts", "-category.event.category", "-category.event.category_id", "-category.event.image", "-category.event.lottery_url", "-category.event.name", "-category.event.show_duration"]
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
@@ -64,24 +64,24 @@ class Category_Preference (db.Model, SerializerMixin):
     send_sms = db.Column(db.Boolean, default=False)
     send_push = db.Column(db.Boolean, default=False)
 
-    user = db.relationship("User", back_populates="category_preferences")
-    category = db.relationship("Category", back_populates="category_preferences")
+    user = db.relationship("User", back_populates="category_alerts")
+    category = db.relationship("Category", back_populates="category_alerts")
 
 class Category (db.Model, SerializerMixin):
     __tablename__ = "category"
 
-    serialize_rules = ["-category_preferences.category", "-event.category"]
+    serialize_rules = ["-category_alerts.category", "-event.category"]
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
 
-    category_preferences = db.relationship("Category_Preference", back_populates="category")
+    category_alerts = db.relationship("Category_Alert", back_populates="category")
     event = db.relationship("Event", back_populates="category")
 
 class Event (db.Model, SerializerMixin):
     __tablename__ = "event"
 
-    serialize_rules = ["-event_preferences.event", "-event_info.event", "-category.event", "-venue.event"]
+    serialize_rules = ["-event_alerts.event", "-event_info.event", "-category.event", "-venue.event"]
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
@@ -94,7 +94,7 @@ class Event (db.Model, SerializerMixin):
     image = db.Column(db.String, nullable=True)
     closed = db.Column(db.Boolean, default=False)
 
-    event_preferences = db.relationship("Event_Preference", back_populates="event")
+    event_alerts = db.relationship("Event_Alert", back_populates="event")
     event_info = db.relationship("Event_Info", back_populates="event")
     category = db.relationship("Category", back_populates="event")
     venue = db.relationship("Venue", back_populates="event")

@@ -23,7 +23,7 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 CORS(app, 
     supports_credentials=True, 
     resources={r"/api/*": {
-        "origins": ["http://localhost:5173", "https://broadwaycommunity.vercel.app"],
+        "origins": ["http://localhost:5174", "http://localhost:5173", "https://broadwaycommunity.vercel.app", "http://192.168.1.174:5173"],
         "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         "allow_headers": ["Content-Type", "Accept", "Authorization", "Origin"],
         "supports_credentials": True,
@@ -42,8 +42,8 @@ app.config["SESSION_REDIS"] = Redis(
     ssl=True
 )
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config["SESSION_COOKIE_SECURE"] = True
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config["SESSION_COOKIE_SECURE"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
 # Initialize Flask-Session
@@ -52,7 +52,7 @@ Session(app)
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
 
-from models import User, Event, Event_Preference, Category_Preference, Event_Info, Category, Token, Venue
+from models import User, Event, Event_Alert, Category_Alert, Event_Info, Category, Token, Venue
 
 ############# Routes #############
 @app.route("/")
@@ -149,15 +149,15 @@ def get_event(id):
             return {"error": f"event with id {id} not found"}, 404
         return event_id.to_dict()
 
-@app.route('/api/event_preferences', methods=['GET', 'POST'])
-def get_event_preferences():
+@app.route('/api/event_alerts', methods=['GET', 'POST'])
+def get_event_alerts():
     if request.method == 'GET':
-        event_preferences = []
-        for preference in Event_Preference.query.all():
-            preference_dict = preference.to_dict()
-            event_preferences.append(preference_dict)
+        event_alerts = []
+        for alert in Event_Alert.query.all():
+            alert_dict = alert.to_dict()
+            event_alerts.append(alert_dict)
 
-        response = make_response(event_preferences,200)
+        response = make_response(event_alerts,200)
 
         return response
 
@@ -167,7 +167,7 @@ def get_event_preferences():
         event = Event.query.filter(Event.name == event_name).first()
 
 
-        new_preference = Event_Preference(
+        new_alert = Event_Alert(
             user_id=request.json.get("user_id"),
             event_id=event.id,
             price=request.json.get("price"),
@@ -179,45 +179,45 @@ def get_event_preferences():
             send_push=request.json.get("send_push"),
         )
 
-        db.session.add(new_preference)
+        db.session.add(new_alert)
         db.session.commit()
         
-        new_preference_dict = new_preference.to_dict()
+        new_alert_dict = new_alert.to_dict()
 
-        response = make_response(new_preference_dict, 201)
+        response = make_response(new_alert_dict, 201)
 
         return response
 
-@app.route('/api/event_preferences/<int:id>', methods=['PATCH', 'DELETE'])
-def edit_event_preferences(id):
-    preference = db.session.get(Event_Preference, id)
-    if not preference:
-        return {"error": f"Event Preference with id {id} not found"}, 404
+@app.route('/api/event_alerts/<int:id>', methods=['PATCH', 'DELETE'])
+def edit_event_alerts(id):
+    alert = db.session.get(Event_Alert, id)
+    if not alert:
+        return {"error": f"Event Alert with id {id} not found"}, 404
     
     if request.method == 'DELETE':    
-        db.session.delete(preference)
+        db.session.delete(alert)
         db.session.commit()
         return {}, 202
 
     elif request.method == 'PATCH':
         try:
             data = request.json
-            setattr(preference, 'price', data['price'])
-            db.session.add(preference)
+            setattr(alert, 'price', data['price'])
+            db.session.add(alert)
             db.session.commit()
-            return preference.to_dict(), 200
+            return alert.to_dict(), 200
         except Exception as e:
             return {"error": f'{e}'}
 
-@app.route('/api/category_preferences', methods=['GET', 'POST'])
-def get_category_preferences():
+@app.route('/api/category_alerts', methods=['GET', 'POST'])
+def get_category_alerts():
     if request.method == 'GET':
-        category_preferences = []
-        for preference in Category_Preference.query.all():
-            preference_dict = preference.to_dict()
-            category_preferences.append(preference_dict)
+        category_alerts = []
+        for alert in Category_Alert.query.all():
+            alert_dict = alert.to_dict()
+            category_alerts.append(alert_dict)
 
-        response = make_response(category_preferences,200)
+        response = make_response(category_alerts,200)
 
         return response
     
@@ -226,7 +226,7 @@ def get_category_preferences():
 
         category = Category.query.filter(Category.name == category_name).first()
 
-        new_preference = Category_Preference(
+        new_alert = Category_Alert(
             user_id=request.json.get("user_id"),
             category_id=category.id,
             price=request.json.get("price"),
@@ -238,33 +238,33 @@ def get_category_preferences():
             send_push=request.json.get("send_push"),
         )
 
-        db.session.add(new_preference)
+        db.session.add(new_alert)
         db.session.commit()
         
-        new_preference_dict = new_preference.to_dict()
+        new_alert_dict = new_alert.to_dict()
 
-        response = make_response(new_preference_dict, 201)
+        response = make_response(new_alert_dict, 201)
 
         return response
 
-@app.route('/api/category_preferences/<int:id>', methods=['PATCH', 'DELETE'])
-def edit_category_preferences(id):
-    preference = db.session.get(Category_Preference, id)
-    if not preference:
-        return {"error": f"Category Preference with id {id} not found"}, 404
+@app.route('/api/category_alerts/<int:id>', methods=['PATCH', 'DELETE'])
+def edit_category_alerts(id):
+    alert = db.session.get(Category_Alert, id)
+    if not alert:
+        return {"error": f"Category Alert with id {id} not found"}, 404
 
     if request.method == 'DELETE':
-        db.session.delete(preference)
+        db.session.delete(alert)
         db.session.commit()
         return {}, 202
 
     elif request.method == 'PATCH':
         try:
             data = request.json
-            setattr(preference, 'price', data['price'])
-            db.session.add(preference)
+            setattr(alert, 'price', data['price'])
+            db.session.add(alert)
             db.session.commit()
-            return preference.to_dict(), 200
+            return alert.to_dict(), 200
         except Exception as e:
             return {"error": f'{e}'}
 
@@ -321,9 +321,12 @@ def refresh_ticket_data_category(category):
 
 @app.route('/api/fetch_ticket/<int:id>', methods=['POST'])
 def refresh_individual_ticket_data(id):
+    print(f"fetching ticket data")
     try:
         event = db.session.query(Event).filter(Event.id == id).first()
+        
         data = fetch_stubhub_data([event])
+        
         response = make_response(data,200)
         return response
     except Exception as e:

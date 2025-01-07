@@ -2,7 +2,7 @@ import os
 import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from models import Token, Event_Info, Event_Preference, Category_Preference, Event
+from models import Token, Event_Info, Event_Alert, Category_Alert, Event
 from db import db
 import sendgrid
 from sendgrid.helpers.mail import Mail
@@ -19,25 +19,25 @@ client_secret = os.getenv('STUBHUB_CLIENT_SECRET')
 sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
 
 ############# Notifications #############
-def events_preference_notification():
-    preferences = db.session.query(Event_Preference).all()
-    for preference in preferences:
-        current_price = preference.event.event_info[0].price
-        preference_price = preference.price
+def events_alert_notification():
+    alerts = db.session.query(Event_Alert).all()
+    for alert in alerts:
+        current_price = alert.event.event_info[0].price
+        alert_price = alert.price
         
-        if current_price <= preference_price:
+        if current_price <= alert_price:
             message = Mail(
                 from_email='broadway.comms@gmail.com',
-                to_emails=preference.user.email,
-                subject=f'Price Alert: {preference.event.name} ${current_price}',
+                to_emails=alert.user.email,
+                subject=f'Price Alert: {alert.event.name} ${current_price}',
                 html_content=f"""
-        <strong>{preference.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
+        <strong>{alert.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
         
-        This show is on {preference.event.event_info[0].formatted_date}.<br><br>
+        This show is on {alert.event.event_info[0].formatted_date}.<br><br>
         
-        <a href="{preference.event.event_info[0].link}">Buy the tickets here</a><br><br>
+        <a href="{alert.event.event_info[0].link}">Buy the tickets here</a><br><br>
 
-        Want to know what the view might be like from these seats? <a href="{preference.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
+        Want to know what the view might be like from these seats? <a href="{alert.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
         
         <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
     """
@@ -49,17 +49,17 @@ def events_preference_notification():
             except Exception as e:
                 print(e)
 
-def preference_notification(old_price, current_price, name, preferences, event_info):
-    if preferences:
-        for preference in preferences:
-            preference_price = preference.price
-            if current_price <= preference_price and (current_price < old_price or not old_price):
+def alert_notification(old_price, current_price, name, alerts, event_info):
+    if alerts:
+        for alert in alerts:
+            alert_price = alert.price
+            if current_price <= alert_price and (current_price < old_price or not old_price):
                 message = Mail(
                     from_email='broadway.comms@gmail.com',
-                    to_emails=preference.user.email,
+                    to_emails=alert.user.email,
                     subject=f'Price Alert: {name} ${current_price}',
                     html_content=f"""
-            <strong>{name}</strong> is selling at <strong>${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${preference_price}.<br><br>
+            <strong>{name}</strong> is selling at <strong>${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${alert_price}.<br><br>
             
             This show is on {event_info.formatted_date}.<br><br>
             
@@ -155,8 +155,7 @@ def get_broadway_tickets(token, endpoint):
         return None
     
 # function to use the received data to find the cheapest ticket in the category
-def find_cheapest_ticket(events, start_date=None, end_date=None):
-    
+def find_cheapest_ticket(events, start_date=datetime.now().isoformat(), end_date=None):    
     cheapest_ticket = None
     
     # Check if there are any events to process
@@ -187,12 +186,11 @@ def find_cheapest_ticket(events, start_date=None, end_date=None):
                 print(f"Skipping event due to invalid date format: {event_date_str}")
                 continue
 
-            # Determine if the event date is within the specified range        
-            if start_date:    
-                start_date_formatted = datetime.fromisoformat(start_date).date()
-                
-                if event_date < start_date_formatted:
-                    within_date_range = False
+            # Determine if the event date is within the specified range
+            start_date_formatted = datetime.fromisoformat(start_date).date()
+            
+            if event_date < start_date_formatted:
+                within_date_range = False
             if end_date:
                 end_date_formatted = datetime.fromisoformat(end_date).date()
                 if event_date > end_date_formatted:
@@ -289,8 +287,8 @@ def fetch_stubhub_data(events):
                 print(f"tickets for {new_event_info.name} added to the database")
                 event_data.append(new_event_info.to_dict())
                 
-                preference_notification(old_price, new_event_info.price, event.name, event.event_preferences, new_event_info)
-                preference_notification(old_price, new_event_info.price, event.name, event.category.category_preferences, new_event_info)
+                alert_notification(old_price, new_event_info.price, event.name, event.event_alerts, new_event_info)
+                alert_notification(old_price, new_event_info.price, event.name, event.category.category_alerts, new_event_info)
                 
                 # db.session.commit()
 
@@ -330,12 +328,12 @@ def fetch_stubhub_data(events):
                 # print(f"tickets for {event_info_variable.id} updated successfully")
                 event_data.append(event_info_variable.to_dict())
                 
-                preference_notification(old_price, event_info_variable.price, event.name, event.event_preferences, event_info_variable)
-                preference_notification(old_price, event_info_variable.price, event.name, event.category.category_preferences, event_info_variable)
+                alert_notification(old_price, event_info_variable.price, event.name, event.event_alerts, event_info_variable)
+                alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
 
             db.session.commit()
     
-    # events_preference_notification()
+    # events_alert_notification()
 
     return event_data
         
