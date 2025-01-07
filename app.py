@@ -121,7 +121,7 @@ def user():
             return {"error": f"could not post user: {e}"}, 405
 
 @app.route('/auth/google', methods=['POST'])
-@cross_origin(origin='https://broadwaycommunity.vercel.app')
+@cross_origin(origins='https://broadwaycommunity.vercel.app')
 def google_auth():
     print("attempting login")
     token = request.json['token']
