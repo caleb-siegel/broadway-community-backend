@@ -45,7 +45,7 @@ class Event_Alert (db.Model, SerializerMixin):
     send_sms = db.Column(db.Boolean, default=False)
     send_push = db.Column(db.Boolean, default=False)
 
-    user = db.relationship("User", back_populates="event_alert")
+    user = db.relationship("User", back_populates="event_alerts")
     event = db.relationship("Event", back_populates="event_alerts")
 
 class Category_Alert (db.Model, SerializerMixin):
