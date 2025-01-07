@@ -25,6 +25,9 @@ selenium = "*"
 webdriver_manager = "*"
 flask-session = "*"
 redis = "*"
+google-auth = "*"
+google-auth-oauthlib = "*"
+google-auth-httplib2 = "*"
 
 [dev-packages]
 
