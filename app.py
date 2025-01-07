@@ -11,6 +11,8 @@ import json
 from datetime import datetime, timedelta
 import os
 from db import db, app
+from google.oauth2 import id_token
+from google.auth.transport import requests
 from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, fetch_stubhub_data_with_dates
 from todaytix import todaytix_fetch
 
@@ -18,6 +20,7 @@ from todaytix import todaytix_fetch
 load_dotenv()
 
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
+google_client_id = os.getenv('GOOGLE_CLIENT_SECRET')
 
 # Enable CORS
 CORS(app, 
@@ -116,6 +119,19 @@ def user():
         except Exception as e:
             print(e)
             return {"error": f"could not post user: {e}"}, 405
+
+@app.route('/auth/google', methods=['POST'])
+def google_auth():
+    token = request.json['token']
+    try:
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(), google_client_id)
+        user_id = idinfo['sub']
+        email = idinfo['email']
+        name = idinfo['name']
+        # Handle user login or registration logic
+        return jsonify({'message': 'Login successful', 'email': email, 'name': name})
+    except ValueError:
+        return jsonify({'error': 'Invalid token'}), 400
     
 @app.route('/api/events', methods=['GET', 'POST'])
 def get_events():
