@@ -60,7 +60,6 @@ def events_alert_notification():
                 auth_token = twilio_auth_token
                 client = Client(account_sid, auth_token)
 
-                # Send an SMS
                 message = client.messages.create(
                     from_='+18557291366',
                     to = f'+1{alert.user.phone_number}',
@@ -100,25 +99,24 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                     except Exception as e:
                         print(e)
 
-                if alert.send_sms:
-                    print(f"Sending SMS for {name} to {alert.user.phone_number}")
-                    # send sms
-                    account_sid = twilio_account_sid
-                    auth_token = twilio_auth_token
-                    client = Client(account_sid, auth_token)
+                # if alert.send_sms:
+                #     print(f"Sending SMS for {name} to {alert.user.phone_number}")
+                #     # send sms
+                #     account_sid = twilio_account_sid
+                #     auth_token = twilio_auth_token
+                #     client = Client(account_sid, auth_token)
 
-                    # Send an SMS
-                    message = client.messages.create(
-                        from_='+18557291366',
-                        to = f'+1{alert.user.phone_number}',
-                        body=(
-                            f"{name}: {current_price}\n"
-                            f"{event_info.formatted_date}\n"
-                            f"Buy the tickets here: {event_info.link}"
-                        ),
-                    )
+                #     message = client.messages.create(
+                #         from_='+18557291366',
+                #         to = f'+1{alert.user.phone_number}',
+                #         body=(
+                #             f"{name}: {current_price}\n"
+                #             f"{event_info.formatted_date}\n"
+                #             f"Buy the tickets here: {event_info.link}"
+                #         ),
+                #     )
 
-                    print(f"Message sent with SID: {message.sid}")
+                #     print(f"Message sent with SID: {message.sid}")
 
 
 ############# Retrieving Stubhub Data #############
