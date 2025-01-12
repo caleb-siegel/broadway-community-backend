@@ -49,11 +49,12 @@ def events_alert_notification():
                 try:
                     sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
                     response = sg.send(message)
-                    print(response.status_code)
+                    print(f'email sent: {response.status_code}')
                 except Exception as e:
                     print(e)
 
             if alert.send_sms:
+                print(f"Sending SMS for {alert.event.name} to {alert.user.phone_number}")
                 # send sms
                 account_sid = twilio_account_sid
                 auth_token = twilio_auth_token
@@ -77,26 +78,47 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
         for alert in alerts:
             alert_price = alert.price
             if current_price <= alert_price and (current_price < old_price or not old_price):
-                message = Mail(
-                    from_email='broadway.comms@gmail.com',
-                    to_emails=alert.user.email,
-                    subject=f'Price Alert: {name} ${current_price}',
-                    html_content=f"""
-            <strong>{name}</strong> is selling at <strong>${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${alert_price}.<br><br>
-            
-            This show is on {event_info.formatted_date}.<br><br>
-            
-            <a href="{event_info.link}">Buy the tickets here</a><br><br>
-            
-            <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
-        """
-                )
-                try:
-                    sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
-                    response = sg.send(message)
-                    print(response.status_code)
-                except Exception as e:
-                    print(e)
+                if alert.send_email:
+                    message = Mail(
+                        from_email='broadway.comms@gmail.com',
+                        to_emails=alert.user.email,
+                        subject=f'Price Alert: {name} ${current_price}',
+                        html_content=f"""
+                <strong>{name}</strong> is selling at <strong>${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${alert_price}.<br><br>
+                
+                This show is on {event_info.formatted_date}.<br><br>
+                
+                <a href="{event_info.link}">Buy the tickets here</a><br><br>
+                
+                <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
+            """
+                    )
+                    try:
+                        sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+                        response = sg.send(message)
+                        print(response.status_code)
+                    except Exception as e:
+                        print(e)
+
+                if alert.send_sms:
+                    print(f"Sending SMS for {alert.event.name} to {alert.user.phone_number}")
+                    # send sms
+                    account_sid = twilio_account_sid
+                    auth_token = twilio_auth_token
+                    client = Client(account_sid, auth_token)
+
+                    # Send an SMS
+                    message = client.messages.create(
+                        from_='+18557291366',
+                        to = f'+1{alert.user.phone_number}',
+                        body=(
+                            f"{name}: {current_price}\n"
+                            f"{event_info.formatted_date}\n"
+                            f"Buy the tickets here: {event_info.link}"
+                        ),
+                    )
+
+                    print(f"Message sent with SID: {message.sid}")
 
 
 ############# Retrieving Stubhub Data #############
