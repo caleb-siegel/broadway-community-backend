@@ -9,6 +9,7 @@ from sendgrid.helpers.mail import Mail
 from sqlalchemy.orm import joinedload
 from collections import defaultdict
 from stubhub_scraper import scrape_with_selenium
+from twilio.rest import Client
 
 
 # Load the .env file if present (for local development)
@@ -17,6 +18,8 @@ load_dotenv()
 client_id = os.getenv('STUBHUB_CLIENT_ID')
 client_secret = os.getenv('STUBHUB_CLIENT_SECRET')
 sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+twilio_account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+twilio_auth_token = os.getenv('TWILIO_AUTH_TOKEN')
 
 ############# Notifications #############
 def events_alert_notification():
@@ -26,28 +29,48 @@ def events_alert_notification():
         alert_price = alert.price
         
         if current_price <= alert_price:
-            message = Mail(
-                from_email='broadway.comms@gmail.com',
-                to_emails=alert.user.email,
-                subject=f'Price Alert: {alert.event.name} ${current_price}',
-                html_content=f"""
-        <strong>{alert.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
-        
-        This show is on {alert.event.event_info[0].formatted_date}.<br><br>
-        
-        <a href="{alert.event.event_info[0].link}">Buy the tickets here</a><br><br>
+            if alert.send_email:
+                message = Mail(
+                    from_email='broadway.comms@gmail.com',
+                    to_emails=alert.user.email,
+                    subject=f'Price Alert: {alert.event.name} ${current_price}',
+                    html_content=f"""
+            <strong>{alert.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
+            
+            This show is on {alert.event.event_info[0].formatted_date}.<br><br>
+            
+            <a href="{alert.event.event_info[0].link}">Buy the tickets here</a><br><br>
 
-        Want to know what the view might be like from these seats? <a href="{alert.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
-        
-        <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
-    """
-            )
-            try:
-                sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
-                response = sg.send(message)
-                print(response.status_code)
-            except Exception as e:
-                print(e)
+            Want to know what the view might be like from these seats? <a href="{alert.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
+            
+            <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
+        """
+                )
+                try:
+                    sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+                    response = sg.send(message)
+                    print(response.status_code)
+                except Exception as e:
+                    print(e)
+
+            if alert.send_sms:
+                # send sms
+                account_sid = twilio_account_sid
+                auth_token = twilio_auth_token
+                client = Client(account_sid, auth_token)
+
+                # Send an SMS
+                message = client.messages.create(
+                    from_='+18557291366',
+                    to = f'+1{alert.user.phone_number}',
+                    body=(
+                        f"{alert['event']['name']}: {alert['price']}\n"
+                        f"{alert['event']['event_info'][0]['formatted_date']}\n"
+                        f"Buy the tickets here: {alert['event']['event_info'][0]['link']}"
+                    ),
+                )
+
+                print(f"Message sent with SID: {message.sid}")
 
 def alert_notification(old_price, current_price, name, alerts, event_info):
     if alerts:
