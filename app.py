@@ -26,10 +26,11 @@ google_client_id = os.getenv('GOOGLE_CLIENT_SECRET')
 CORS(app, 
     supports_credentials=True, 
     resources={r"/api/*": {
-        "origins": ["http://localhost:5174", "http://localhost:5173", "https://broadwaycommunity.vercel.app", "http://192.168.1.174:5173"],
+        "origins": ["http://localhost:5174", "http://localhost:5173", "https://broadwaycommunity.vercel.app","https://broadwaycommunity-backend.vercel.app", "http://192.168.1.174:5173"],
         "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         "allow_headers": ["Content-Type", "Accept", "Authorization", "Origin"],
         "supports_credentials": True,
+        "max_age": 120,
     }},
 )
 
@@ -72,12 +73,16 @@ def check_session():
     else:
         return {"message": "No user logged in"}, 401
 
-@app.route('/api/auth/google', methods=['POST'])
+@app.route('/api/auth/google', methods=['POST', 'OPTIONS'])
 def google_auth():
-    data = request.json
-    user_info = data.get('userInfo')
-    
+    # Handle preflight request
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+        
     try:
+        data = request.json
+        user_info = data.get('userInfo')
+        
         if user_info:
             email = user_info.get('email')
             name = user_info.get('name')
@@ -87,7 +92,6 @@ def google_auth():
             
             if not user:
                 # Create new user
-                # You might want to split the name into first_name and last_name
                 names = name.split(' ', 1)
                 first_name = names[0]
                 last_name = names[1] if len(names) > 1 else ''
@@ -95,8 +99,7 @@ def google_auth():
                 user = User(
                     first_name=first_name,
                     last_name=last_name,
-                    email=email,
-                    # Set other fields as needed
+                    email=email
                 )
                 db.session.add(user)
                 db.session.commit()
@@ -114,7 +117,7 @@ def google_auth():
         
     except Exception as e:
         print(f"Error in google_auth: {str(e)}")
-        return jsonify({'error': 'Authentication failed'}), 400
+        return jsonify({'error': str(e)}), 400
 
 @app.delete('/api/logout')
 def logout():
