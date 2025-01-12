@@ -72,6 +72,54 @@ def check_session():
     else:
         return {"message": "No user logged in"}, 401
 
+@app.post('/api/login')
+def login():
+    print('login')
+    data = request.json
+    user = User.query.filter(User.email == data.get('email')).first()
+    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
+        session.permanent = True
+        session["user_id"] = user.id
+        print(f'{user.first_name} {user.last_name} logged in')
+        return user.to_dict(), 200
+    else:
+        return { "error": "Invalid username or password" }, 401
+
+@app.delete('/api/logout')
+def logout():
+    try:
+        session.clear()
+        response = jsonify({"message": "Logged out successfully"})
+        response.set_cookie('session', '', expires=0)  # Clear session cookie
+        return response, 200
+    except Exception as e:
+        print(f"Logout error: {str(e)}")
+        return jsonify({"error": "Logout failed"}), 500
+    
+@app.route('/api/user', methods=['GET', 'POST'])
+def user():
+    if request.method == 'GET':
+        users = [user.to_dict() for user in User.query.all()]
+        return make_response( users, 200 )
+    
+    elif request.method == 'POST':
+        data = request.json
+        try:
+            new_user = User(
+                first_name = data.get("first_name"),
+                last_name = data.get("last_name"),
+                email = data.get("email"),
+                phone_number = data.get("phone_number"),
+                password_hash = bcrypt.generate_password_hash(data.get("password_hash")).decode('utf-8')
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            
+            return new_user.to_dict(), 201
+        except Exception as e:
+            print(e)
+            return {"error": f"could not post user: {e}"}, 405
+
 @app.route('/api/auth/google', methods=['POST'])
 def google_auth():
     data = request.json
@@ -115,56 +163,6 @@ def google_auth():
     except Exception as e:
         print(f"Error in google_auth: {str(e)}")
         return jsonify({'error': 'Authentication failed'}), 400
-
-@app.delete('/api/logout')
-def logout():
-    try:
-        session.clear()
-        response = jsonify({"message": "Logged out successfully"})
-        response.set_cookie('session', '', expires=0)  # Clear session cookie
-        return response, 200
-    except Exception as e:
-        print(f"Logout error: {str(e)}")
-        return jsonify({"error": "Logout failed"}), 500
-    
-@app.route('/api/user', methods=['GET', 'POST'])
-def user():
-    if request.method == 'GET':
-        users = [user.to_dict() for user in User.query.all()]
-        return make_response( users, 200 )
-    
-    elif request.method == 'POST':
-        data = request.json
-        try:
-            new_user = User(
-                first_name = data.get("first_name"),
-                last_name = data.get("last_name"),
-                email = data.get("email"),
-                phone_number = data.get("phone_number"),
-                password_hash = bcrypt.generate_password_hash(data.get("password_hash")).decode('utf-8')
-            )
-            db.session.add(new_user)
-            db.session.commit()
-            
-            return new_user.to_dict(), 201
-        except Exception as e:
-            print(e)
-            return {"error": f"could not post user: {e}"}, 405
-
-@app.route('/api/auth/google', methods=['POST'])
-def google_auth():
-    print("attempting login")
-    token = request.json['token']
-    print(token)
-    try:
-        idinfo = id_token.verify_oauth2_token(token, requests.Request(), google_client_id)
-        user_id = idinfo['sub']
-        email = idinfo['email']
-        name = idinfo['name']
-        # Handle user login or registration logic
-        return jsonify({'message': 'Login successful', 'email': email, 'name': name})
-    except ValueError:
-        return jsonify({'error': 'Invalid token'}), 400
     
 @app.route('/api/events', methods=['GET', 'POST'])
 def get_events():
