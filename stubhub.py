@@ -101,7 +101,7 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                         print(e)
 
                 if alert.send_sms:
-                    print(f"Sending SMS for {alert.event.name} to {alert.user.phone_number}")
+                    print(f"Sending SMS for {name} to {alert.user.phone_number}")
                     # send sms
                     account_sid = twilio_account_sid
                     auth_token = twilio_auth_token
