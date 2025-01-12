@@ -72,18 +72,49 @@ def check_session():
     else:
         return {"message": "No user logged in"}, 401
 
-@app.post('/api/login')
-def login():
-    print('login')
+@app.route('/api/auth/google', methods=['POST'])
+def google_auth():
     data = request.json
-    user = User.query.filter(User.email == data.get('email')).first()
-    if user and bcrypt.check_password_hash(user.password_hash, data.get('password')):
-        session.permanent = True
-        session["user_id"] = user.id
-        print(f'{user.first_name} {user.last_name} logged in')
-        return user.to_dict(), 200
-    else:
-        return { "error": "Invalid username or password" }, 401
+    user_info = data.get('userInfo')
+    
+    try:
+        if user_info:
+            email = user_info.get('email')
+            name = user_info.get('name')
+            
+            # Check if user exists
+            user = User.query.filter_by(email=email).first()
+            
+            if not user:
+                # Create new user
+                # You might want to split the name into first_name and last_name
+                names = name.split(' ', 1)
+                first_name = names[0]
+                last_name = names[1] if len(names) > 1 else ''
+                
+                user = User(
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    # Set other fields as needed
+                )
+                db.session.add(user)
+                db.session.commit()
+            
+            # Set session
+            session.permanent = True
+            session["user_id"] = user.id
+            
+            return jsonify({
+                'success': True,
+                'user': user.to_dict()
+            })
+            
+        return jsonify({'error': 'Invalid user info'}), 400
+        
+    except Exception as e:
+        print(f"Error in google_auth: {str(e)}")
+        return jsonify({'error': 'Authentication failed'}), 400
 
 @app.delete('/api/logout')
 def logout():
