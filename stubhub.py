@@ -150,15 +150,16 @@ def get_broadway_tickets(token, endpoint):
 # function to use the received data to find the cheapest ticket in the category
 def find_cheapest_ticket(events, start_date=datetime.now().isoformat(), end_date=None):    
     cheapest_ticket = None
+    current_time = datetime.now(datetime.fromisoformat('2024-01-01T00:00:00-05:00').tzinfo)  # Eastern Time
     
     # Check if there are any events to process
     if not events["_embedded"]["items"]:
         return None
     
     for event in events["_embedded"]["items"]:
-        # Skip events without a valid ticket price
         min_ticket_price = event["min_ticket_price"]
         
+        # Skip events without a valid ticket price
         if min_ticket_price is None:
             continue
 
@@ -166,14 +167,19 @@ def find_cheapest_ticket(events, start_date=datetime.now().isoformat(), end_date
         
         if start_date or end_date:
             # Get and format the event date
-            
             event_date_str = event["start_date"]
             
             if not event_date_str:
                 continue
             try:
                 # Parse the ISO 8601 datetime string
-                event_date = datetime.fromisoformat(event_date_str).date()
+                event_datetime = datetime.fromisoformat(event_date_str)
+                event_date = event_datetime.date()
+                
+                # Skip if show has already started
+                if event_datetime <= current_time:
+                    continue
+                
             except ValueError:
                 # Skip this event if the date format is incorrect
                 print(f"Skipping event due to invalid date format: {event_date_str}")
