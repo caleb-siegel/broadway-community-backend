@@ -3,9 +3,12 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from flask_migrate import Migrate
 from flask_cors import CORS
+from dotenv import load_dotenv
 import requests
 import os
 
+# Load environment variables
+load_dotenv()
 
 # Create the SQLAlchemy instance
 metadata = MetaData(

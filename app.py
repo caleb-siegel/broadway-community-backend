@@ -13,8 +13,9 @@ import os
 from db import db, app
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, fetch_stubhub_data_with_dates
+from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, fetch_stubhub_data_with_dates, add_tracked_event, find_event_id
 from todaytix import todaytix_fetch
+import pytz
 
 # Load the .env file if present (for local development)
 load_dotenv()
@@ -26,7 +27,15 @@ google_client_id = os.getenv('GOOGLE_CLIENT_SECRET')
 CORS(app, 
     supports_credentials=True, 
     resources={r"/api/*": {
-        "origins": ["http://localhost:5174", "http://localhost:5173", "https://broadwaycommunity.vercel.app", "http://192.168.1.174:5173"],
+        "origins": [
+            "http://localhost:5174", 
+            "http://localhost:5173", 
+            "http://127.0.0.1:5173",
+            "http://192.168.1.174:5173",
+            "https://broadwaycommunity.vercel.app", 
+            "http://192.168.1.174:5173",
+            "http://127.0.0.1:5000"
+        ],        
         "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         "allow_headers": ["Content-Type", "Accept", "Authorization", "Origin"],
         "supports_credentials": True,
@@ -173,8 +182,40 @@ def get_events():
             events.append(event_dict)
 
         response = make_response(events,200)
-
         return response
+
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            print("Received data:", data)  # Debug print
+            
+            # First, handle venue if it exists
+            venue_id = data.get('venue_id')  # Get venue_id from the request data
+            
+            created_events = []
+            # Create an event for each selected Stubhub category
+            stubhub_category = data.get('stubhub_categories')
+            if not stubhub_category:
+                return jsonify({"error": "Stubhub category is required"}), 400
+
+            new_event = Event(
+                name=data['name'],
+                stubhub_category_id=str(stubhub_category),  # Make sure it's a string
+                category_id=data['category_id'],
+                venue_id=venue_id  # Include the venue_id here
+            )
+            db.session.add(new_event)
+            created_events.append(new_event)
+            
+            db.session.commit()
+            
+            # Return all created events
+            return jsonify([event.to_dict() for event in created_events]), 201
+
+        except Exception as e:
+            print("Error:", str(e))  # Debug print
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 400
 
 @app.route('/api/event_names', methods=['GET', 'POST'])
 def get_event_names():
@@ -327,17 +368,16 @@ def get_categories():
 
         return response
     
-@app.route('/api/category_names', methods=['GET', 'POST'])
+@app.route('/api/category_names', methods=['GET'])
 def get_category_names():
     if request.method == 'GET':
         categories = []
         for category in Category.query.all():
-            category_name = category.name
-            categories.append(category_name)
-
-        response = make_response(categories,200)
-
-        return response
+            categories.append({
+                "id": category.id,
+                "name": category.name
+            })
+        return make_response(jsonify(categories), 200)
     
 @app.route('/api/categories/<string:name>', methods=['GET', 'POST'])
 def get_category_by_name(name):
@@ -405,7 +445,135 @@ def fetch_today_tix_data(id):
         return response
     except Exception as e:
         return {"error": str(e)}, 500
+    
+@app.route('/api/add_tracked_event', methods=['GET'])
+def add_tracked_event_route():
+    try:
+        # Get the link from query parameters
+        stubhub_link = request.args.get('link')
+        
+        if not stubhub_link:
+            return jsonify({"error": "No Stubhub link provided"}), 400
+            
+        try:
+            event_data = add_tracked_event(stubhub_link)  # Pass the user's link to the function
+            return make_response(jsonify(event_data), 200)
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 404
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+@app.route('/api/venues', methods=['POST'])
+def create_venue():
+    try:
+        data = request.get_json()
+        
+        # Check if venue already exists
+        existing_venue = Venue.query.filter_by(
+            stubhub_venue_id=str(data['stubhub_venue_id'])  # Convert to string
+        ).first()
+        
+        if existing_venue:
+            return jsonify(existing_venue.to_dict()), 200
+            
+        # Create new venue if it doesn't exist
+        new_venue = Venue(
+            name=data['name'],
+            stubhub_venue_id=str(data['stubhub_venue_id']),  # Convert to string
+            latitude=str(data['latitude']),                   # Convert to string
+            longitude=str(data['longitude'])                  # Convert to string
+        )
+        
+        db.session.add(new_venue)
+        db.session.commit()
+        
+        return jsonify(new_venue.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/api/cron/fetch-all-tickets', methods=['POST'])
+def cron_refresh_all_data():
+    try:
+        # Verify the request is from GitHub Actions
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or auth_header != f"Bearer {os.getenv('CRON_SECRET_KEY')}":
+            return {"error": "Unauthorized"}, 401
+
+        # Get category from query parameter, default to first category if none provided
+        category_name = request.args.get('category')
+        
+        if category_name:
+            # Fetch events for specific category
+            events = db.session.query(Event).join(Category).filter(Category.name == category_name).all()
+        else:
+            # If no category specified, get first category's events
+            first_category = db.session.query(Category).first()
+            events = first_category.events if first_category else []
+            category_name = first_category.name if first_category else "none"
+
+        # Get current time in EST
+        est = pytz.timezone('America/New_York')
+        current_time = datetime.now(est)
+
+        # Fetch and update data
+        updated_data = fetch_stubhub_data(events)
+        
+        return {
+            "message": "Cron job completed successfully",
+            "category": category_name,
+            "events_processed": len(events),
+            "timestamp": current_time.isoformat(),
+            "timezone": "EST"
+        }, 200
+        
+    except Exception as e:
+        print(f"Cron job error: {str(e)}")
+        return {"error": str(e)}, 500
+
+@app.route('/api/events/ids', methods=['GET'])
+def get_event_ids():
+    events = db.session.query(Event.id).all()
+    return jsonify([event[0] for event in events])
+
+@app.route('/api/cron/fetch-event', methods=['POST'])
+def cron_refresh_event():
+    try:
+        # Verify the request is from GitHub Actions
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or auth_header != f"Bearer {os.getenv('CRON_SECRET_KEY')}":
+            return {"error": "Unauthorized"}, 401
+
+        # Get event ID from query parameter
+        event_id = request.args.get('event_id')
+        if not event_id:
+            return {"error": "No event ID provided"}, 400
+            
+        # Fetch single event
+        event = db.session.query(Event).get(event_id)
+        if not event:
+            return {"error": "Event not found"}, 404
+
+        # Get current time in EST
+        est = pytz.timezone('America/New_York')
+        current_time = datetime.now(est)
+
+        # Fetch and update data for single event
+        updated_data = fetch_stubhub_data([event])
+        
+        return {
+            "message": "Event update completed successfully",
+            "event_id": event_id,
+            "event_name": event.name,
+            "timestamp": current_time.isoformat(),
+            "timezone": "EST"
+        }, 200
+        
+    except Exception as e:
+        print(f"Cron job error: {str(e)}")
+        return {"error": str(e)}, 500
 
 if __name__ == "__main__":
     app.run(debug=True)

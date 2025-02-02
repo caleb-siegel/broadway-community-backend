@@ -1,0 +1,38 @@
+name: Fetch StubHub Tickets
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'  # Run every 5 minutes
+
+jobs:
+  fetch-tickets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get all event IDs
+        id: get-events
+        run: |
+          events=$(curl -s "https://broadwaycommunity-backend.vercel.app/api/events/ids")
+          echo "::set-output name=event_list::$events"
+
+      - name: Process events
+        env:
+          CRON_SECRET_KEY: ${{ secrets.CRON_SECRET_KEY }}
+          APP_URL: 'https://broadwaycommunity-backend.vercel.app'
+        run: |
+          for event_id in $(echo ${{ steps.get-events.outputs.event_list }} | jq -r '.[]'); do
+            echo "Processing event ID: $event_id"
+            response=$(curl -X POST \
+              -H "Authorization: Bearer $CRON_SECRET_KEY" \
+              -H "Content-Type: application/json" \
+              --max-time 30 \
+              "$APP_URL/api/cron/fetch-event?event_id=$event_id")
+            echo "Response: $response"
+            # Add small delay between requests
+            sleep 1
+          done
+
+      - name: Log execution time
+        run: |
+          current_time=$(TZ="America/New_York" date +'%Y-%m-%d %H:%M:%S %Z')
+          echo "Job executed at $current_time" 

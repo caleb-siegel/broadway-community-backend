@@ -22,56 +22,6 @@ twilio_account_sid = os.getenv('TWILIO_ACCOUNT_SID')
 twilio_auth_token = os.getenv('TWILIO_AUTH_TOKEN')
 
 ############# Notifications #############
-def events_alert_notification():
-    alerts = db.session.query(Event_Alert).all()
-    for alert in alerts:
-        current_price = alert.event.event_info[0].price
-        alert_price = alert.price
-        
-        if current_price <= alert_price:
-            if alert.send_email:
-                message = Mail(
-                    from_email='broadway.comms@gmail.com',
-                    to_emails=alert.user.email,
-                    subject=f'Price Alert: {alert.event.name} ${current_price}',
-                    html_content=f"""
-            <strong>{alert.event.name}</strong> is selling at <strong>${current_price}</strong>.<br><br>
-            
-            This show is on {alert.event.event_info[0].formatted_date}.<br><br>
-            
-            <a href="{alert.event.event_info[0].link}">Buy the tickets here</a><br><br>
-
-            Want to know what the view might be like from these seats? <a href="{alert.event.venue.seatplan_url}">Click here</a> and find an image from these seats.<br><br>
-            
-            <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
-        """
-                )
-                try:
-                    sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
-                    response = sg.send(message)
-                    print(f'email sent: {response.status_code}')
-                except Exception as e:
-                    print(e)
-
-            if alert.send_sms:
-                print(f"Sending SMS for {alert.event.name} to {alert.user.phone_number}")
-                # send sms
-                account_sid = twilio_account_sid
-                auth_token = twilio_auth_token
-                client = Client(account_sid, auth_token)
-
-                message = client.messages.create(
-                    from_='+18557291366',
-                    to = f'+1{alert.user.phone_number}',
-                    body=(
-                        f"{alert['event']['name']}: {alert['price']}\n"
-                        f"{alert['event']['event_info'][0]['formatted_date']}\n"
-                        f"Buy the tickets here: {alert['event']['event_info'][0]['link']}"
-                    ),
-                )
-
-                print(f"Message sent with SID: {message.sid}")
-
 def alert_notification(old_price, current_price, name, alerts, event_info):
     if alerts:
         for alert in alerts:
@@ -375,8 +325,6 @@ def fetch_stubhub_data(events):
                 alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
 
             db.session.commit()
-    
-    # events_alert_notification()
 
     return event_data
         
@@ -446,6 +394,61 @@ def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
                 res.append(cheapest_event_info)
     return res
 
-# scheduler = BackgroundScheduler()
-# scheduler.add_job(fetch_stubhub_data, 'interval', minutes=15)
-# scheduler.start()
+############# Add new event to database #############
+def find_event_id(stubhub_link):
+    try:
+        # Check if the URL contains the expected pattern
+        if "/event/" not in stubhub_link:
+            raise ValueError("Invalid Stubhub URL: missing '/event/' pattern")
+        
+        # Split on /event/ and take everything after it
+        after_event = stubhub_link.split("/event/")[1]
+        
+        # Remove any trailing slashes and query parameters
+        event_id = after_event.split('/')[0].split('?')[0].strip()
+        
+        # Verify event_id is numeric
+        if not event_id.isdigit():
+            raise ValueError(f"Invalid event ID format: {event_id}")
+        
+        return event_id
+
+    except IndexError:
+        raise ValueError("Unable to parse event ID from URL")
+    except Exception as e:
+        raise ValueError(f"Error processing Stubhub URL: {str(e)}")
+    
+def add_tracked_event(stubhub_link):
+    # get event_id from stubhub_link    
+    event_id = find_event_id(stubhub_link)
+    
+    # fetch stubhub data with endpoint of https://api.stubhub.net/catalog/events/{event_id}
+    url = f"https://api.stubhub.net/catalog/events/{event_id}"
+    stubhub_token = get_stubhub_token(client_id, client_secret)
+    
+    try:
+        stubhub_data = get_broadway_tickets(stubhub_token, url)
+        
+        if not stubhub_data or 'error' in stubhub_data:
+            raise ValueError("Event not found")
+
+        # Get categories data
+        categories = stubhub_data['_embedded']['categories']
+        category_list = []
+        for category in categories:
+            category_list.append({
+                "name": category["name"],
+                "id": category["id"]
+            })
+        
+        # Get venue data
+        venue = stubhub_data['_embedded']['venue']
+        
+        # Return structured response with event name
+        return {
+            "name": stubhub_data.get('name', ''),
+            "categories": category_list,
+            "venue": venue
+        }
+    except Exception as e:
+        raise ValueError("Event not found")
