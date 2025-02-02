@@ -575,5 +575,37 @@ def cron_refresh_event():
         print(f"Cron job error: {str(e)}")
         return {"error": str(e)}, 500
 
+@app.route('/api/check_existing_events', methods=['GET'])
+def check_existing_events():
+    try:
+        # Get comma-separated list of stubhub category IDs from query parameters
+        stubhub_categories = request.args.get('stubhub_categories')
+        if not stubhub_categories:
+            return jsonify({"error": "No category IDs provided"}), 400
+
+        # Split into list and remove any empty strings
+        category_ids = [cat for cat in stubhub_categories.split(',') if cat]
+
+        # Initialize result dictionary
+        result = {}
+
+        # Query events for each category ID
+        for category_id in category_ids:
+            events = Event.query.filter_by(stubhub_category_id=category_id).all()
+            
+            # Track which venue types exist for this category
+            has_specific = any(event.venue_id is not None for event in events)
+            has_any = any(event.venue_id is None for event in events)
+
+            result[category_id] = {
+                "specific": has_specific,
+                "any": has_any
+            }
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
