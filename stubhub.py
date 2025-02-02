@@ -165,26 +165,17 @@ def find_cheapest_ticket(events, start_date=datetime.now().isoformat(), end_date
 
         within_date_range = True
         
-        if start_date or end_date:
-            # Get and format the event date
-            event_date_str = event["start_date"]
-            
-            if not event_date_str:
-                continue
-            try:
-                # Parse the ISO 8601 datetime string
-                event_datetime = datetime.fromisoformat(event_date_str)
-                event_date = event_datetime.date()
-                
-                # Skip if show has already started
-                if event_datetime <= current_time:
-                    continue
-                
-            except ValueError:
-                # Skip this event if the date format is incorrect
-                print(f"Skipping event due to invalid date format: {event_date_str}")
-                continue
+        # Get and format the event date
+        event_date_str = event["start_date"]
+        
+        if not event_date_str:
+            continue
+        
+        # Parse the ISO 8601 datetime string
+        event_datetime = datetime.fromisoformat(event_date_str)
+        event_date = event_datetime.date()
 
+        if start_date or end_date:
             # Determine if the event date is within the specified range
             start_date_formatted = datetime.fromisoformat(start_date).date()
             
@@ -195,6 +186,16 @@ def find_cheapest_ticket(events, start_date=datetime.now().isoformat(), end_date
                 if event_date > end_date_formatted:
                     within_date_range = False
         
+        try:
+            # Skip if show has already started
+            if event_datetime <= current_time:
+                continue
+            
+        except ValueError:
+            # Skip this event if the date format is incorrect
+            print(f"Skipping event due to invalid date format: {event_date_str}")
+            continue
+
         # Update the cheapest ticket if within range and price is lower
         if within_date_range:
             ticket_price_amount = min_ticket_price["amount"]
