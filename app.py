@@ -208,6 +208,8 @@ def get_events():
             created_events.append(new_event)
             
             db.session.commit()
+
+            fetch_stubhub_data([new_event])
             
             # Return all created events
             return jsonify([event.to_dict() for event in created_events]), 201
