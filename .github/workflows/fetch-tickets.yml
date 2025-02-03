@@ -4,19 +4,19 @@ on:
   workflow_dispatch:
   schedule:
     # 8am-5pm EST (13:00-22:00 UTC): Every other hour
-    - cron: '0 13,15,17,19,21,22 * * *'
+    - cron: '0 13,15,17,19,21,22 * * 2-5,0'
     
     # 5pm-6pm EST (22:00-23:00 UTC): Every 15 minutes
-    - cron: '*/15 22 * * *'
+    - cron: '*/15 22 * * 2-5,0'
     
     # 6pm-7pm EST (23:00-0:00 UTC): Every 5 minutes
-    - cron: '*/5 23 * * *'
+    - cron: '*/5 23 * * 2-5,0'
     
     # 7pm-8pm EST (0:00-1:00 UTC): Every 30 minutes
-    - cron: '0,30 0 * * *'
+    - cron: '0,30 0 * * 2-5,0'
     
     # 8pm-12am EST (1:00-5:00 UTC): Hourly
-    - cron: '0 1-5 * * *'
+    - cron: '0 1-5 * * 2-5,0'
 
 jobs:
   fetch-tickets:
