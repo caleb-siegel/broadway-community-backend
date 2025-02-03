@@ -26,7 +26,7 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
     if alerts:
         for alert in alerts:
             alert_price = alert.price
-            if current_price <= alert_price and (current_price < old_price or not old_price):
+            if current_price <= alert_price and (old_price is None or current_price < old_price):
                 if alert.send_email:
                     message = Mail(
                         from_email='broadway.comms@gmail.com',
@@ -214,8 +214,9 @@ def fetch_stubhub_data(events):
         return {"error": f"Couldn't fetch events"}, 404
     
     # If we are only fetching one event, scrape the site to find the ticket info
-    # if len(events) == 1:
-        # add_scraped_data = True
+    add_scraped_data = True
+    if len(events) == 1:
+        add_scraped_data = True
 
     for event in events:
         # if there is no associated venue with the event, assign an empty string to lat and long values
@@ -243,7 +244,7 @@ def fetch_stubhub_data(events):
             continue
         else:
             cheapest_ticket = find_cheapest_ticket(events_data)
-
+            seat_info = None
             # if add_scraped_data:
             #     seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
 
@@ -259,7 +260,7 @@ def fetch_stubhub_data(events):
             complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
             formatted_weekday = non_formatted_datetime.strftime("%a")
 
-            old_price = None
+            old_price = 0
 
             # if event_info is empty
             if not event.event_info:
