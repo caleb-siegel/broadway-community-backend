@@ -72,18 +72,31 @@ def setup_driver():
         # Use default Chrome binary in Vercel environment
         if os.environ.get('VERCEL'):
             print("Running in Vercel environment")
-            chrome_binary = "/var/chrome/chrome"
-            chromedriver_path = "/var/task/chromedriver"  # This will be set by vercel-build.sh
+            # Use Vercel's default Chrome location
+            options.binary_location = "/opt/google/chrome/chrome"
             
-            print(f"Chrome binary path: {chrome_binary}")
+            # Set up ChromeDriver from the current directory
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            chromedriver_path = os.path.join(current_dir, "chromedriver")
+            
+            print(f"Chrome binary path: {options.binary_location}")
             print(f"ChromeDriver path: {chromedriver_path}")
             
-            if not os.path.exists(chrome_binary):
-                print(f"Warning: Chrome binary not found at {chrome_binary}")
+            if not os.path.exists(options.binary_location):
+                print(f"Warning: Chrome binary not found at {options.binary_location}")
+                # Try alternative Chrome locations
+                alt_locations = [
+                    "/usr/bin/google-chrome",
+                    "/usr/bin/google-chrome-stable"
+                ]
+                for loc in alt_locations:
+                    if os.path.exists(loc):
+                        print(f"Found Chrome at alternative location: {loc}")
+                        options.binary_location = loc
+                        break
+            
             if not os.path.exists(chromedriver_path):
                 print(f"Warning: ChromeDriver not found at {chromedriver_path}")
-            
-            options.binary_location = chrome_binary
         
         # Add required options for running in serverless environment
         options.add_argument('--headless=new')
@@ -98,6 +111,9 @@ def setup_driver():
         options.add_argument('--remote-debugging-port=9222')
         options.add_argument('--disable-setuid-sandbox')
         options.add_argument('--disable-dev-tools')
+        options.add_argument('--no-first-run')
+        options.add_argument('--no-default-browser-check')
+        options.add_argument('--disable-background-networking')
         
         # Performance optimizations
         options.add_argument('--disable-images')
@@ -130,13 +146,21 @@ def setup_driver():
         print("\nSystem State:")
         try:
             print("Checking Chrome installation:")
-            if os.path.exists('/var/chrome/chrome'):
-                print("Chrome exists at /var/chrome/chrome")
-            if os.path.exists('/var/task/chromedriver'):
-                print("ChromeDriver exists at /var/task/chromedriver")
-            print("\nDirectory contents:")
-            print("/var/chrome/:", os.listdir('/var/chrome') if os.path.exists('/var/chrome') else "Directory not found")
-            print("/var/task/:", os.listdir('/var/task') if os.path.exists('/var/task') else "Directory not found")
+            for chrome_path in ["/opt/google/chrome/chrome", "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable"]:
+                if os.path.exists(chrome_path):
+                    print(f"Chrome exists at {chrome_path}")
+            
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            print(f"\nCurrent directory contents ({current_dir}):")
+            print(os.listdir(current_dir))
+            
+            print("\nChrome version check:")
+            try:
+                chrome_version = subprocess.check_output([options.binary_location, '--version'], stderr=subprocess.STDOUT)
+                print(f"Chrome version: {chrome_version.decode()}")
+            except Exception as e3:
+                print(f"Could not get Chrome version: {str(e3)}")
+                
         except Exception as e2:
             print(f"Error checking system state: {str(e2)}")
         raise
