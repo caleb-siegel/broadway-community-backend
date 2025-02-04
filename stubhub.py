@@ -10,7 +10,10 @@ from sqlalchemy.orm import joinedload
 from collections import defaultdict
 from stubhub_scraper import scrape_with_selenium
 from twilio.rest import Client
+import logging
 
+# Set up logger
+logger = logging.getLogger(__name__)
 
 # Load the .env file if present (for local development)
 load_dotenv()
@@ -212,11 +215,6 @@ def fetch_stubhub_data(events):
     
     if not events:
         return {"error": f"Couldn't fetch events"}, 404
-    
-    # If we are only fetching one event, scrape the site to find the ticket info
-    add_scraped_data = True
-    if len(events) == 1:
-        add_scraped_data = True
 
     for event in events:
         # if there is no associated venue with the event, assign an empty string to lat and long values
@@ -244,10 +242,7 @@ def fetch_stubhub_data(events):
             continue
         else:
             cheapest_ticket = find_cheapest_ticket(events_data)
-            seat_info = None
-            # if add_scraped_data:
-            #     seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
-
+            
             start_date = cheapest_ticket["start_date"]
             non_formatted_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
             
@@ -264,6 +259,10 @@ def fetch_stubhub_data(events):
 
             # if event_info is empty
             if not event.event_info:
+                
+                # scrape the event page to get the seat info
+                seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
+                
                 # post new entry
                 new_event_info = Event_Info (
                     name = cheapest_ticket["name"],
@@ -278,10 +277,10 @@ def fetch_stubhub_data(events):
                     average_denominator = 1,
                     average_lowest_price = round(cheapest_ticket["min_ticket_price"]["amount"]),
                     updated_at = datetime.now(),
-                    # location = seat_info["location"] if (seat_info and add_scraped_data) else None,
-                    # row = seat_info["row"] if (seat_info and add_scraped_data) else None,
-                    # quantity = seat_info["quantity"] if (seat_info and add_scraped_data) else None,
-                    # note = seat_info["note"] if (seat_info and add_scraped_data) else None,
+                    location = seat_info["location"] if seat_info else None,
+                    row = seat_info["row"] if seat_info else None,
+                    quantity = seat_info["quantity"] if seat_info else None,
+                    note = seat_info["note"] if seat_info else None,
                 )
                 db.session.add(new_event_info)
 
@@ -300,37 +299,46 @@ def fetch_stubhub_data(events):
             else:
                 old_price = event.event_info[0].price
                 new_price = round(cheapest_ticket["min_ticket_price"]["amount"])
+                old_formatted_date = event.event_info[0].formatted_date
+                old_link = event.event_info[0].link
+                new_link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
 
-                # patch entry with new info
-                event_info_variable = event.event_info[0]
-                event_info_variable.name = cheapest_ticket["name"]
-                event_info_variable.event_id = event.id
-                event_info_variable.price = new_price
-                event_info_variable.event_time = non_formatted_time
-                event_info_variable.event_date = non_formatted_date
-                event_info_variable.event_weekday = non_formatted_weekday
-                event_info_variable.formatted_date = complete_formatted_date
-                event_info_variable.sortable_date = non_formatted_datetime,
-                event_info_variable.link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
-                event_info_variable.updated_at = datetime.now(),
-                # event_info_variable.location = seat_info["location"] if (seat_info and add_scraped_data) else None,
-                # event_info_variable.row = seat_info["row"] if (seat_info and add_scraped_data) else None,
-                # event_info_variable.quantity = seat_info["quantity"] if (seat_info and add_scraped_data) else None,
-                # event_info_variable.note = seat_info["note"] if (seat_info and add_scraped_data) else None,
+                if new_price == old_price and complete_formatted_date == old_formatted_date and new_link == old_link:
+                    logger.info(f"no changes to {event.name}")                    
+                    event_data.append(event.event_info[0].to_dict())
+                else:
+                    # scrape the event page to get the seat info
+                    seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
+                    
 
-                # if the lowest price is different, update the average
-                if old_price != new_price:
+                    # patch entry with new info
+                    event_info_variable = event.event_info[0]
+                    event_info_variable.name = cheapest_ticket["name"]
+                    event_info_variable.event_id = event.id
+                    event_info_variable.price = new_price
+                    event_info_variable.event_time = non_formatted_time
+                    event_info_variable.event_date = non_formatted_date
+                    event_info_variable.event_weekday = non_formatted_weekday
+                    event_info_variable.formatted_date = complete_formatted_date
+                    event_info_variable.sortable_date = non_formatted_datetime,
+                    event_info_variable.link = new_link
+                    event_info_variable.updated_at = datetime.now()
+                    event_info_variable.location = seat_info["location"] if seat_info else None
+                    event_info_variable.row = seat_info["row"] if seat_info else None
+                    event_info_variable.quantity = seat_info["quantity"] if seat_info else None
+                    event_info_variable.note = seat_info["note"] if seat_info else None
+
+                    # update the average
                     new_count = event.event_info[0].average_denominator + 1
                     average = ((event.event_info[0].average_lowest_price * (new_count - 1)) + new_price) / (new_count)
-                    
-                    event_info_variable.average_denominator = new_count,
-                    event_info_variable.average_lowest_price = average,
+                    event_info_variable.average_denominator = new_count
+                    event_info_variable.average_lowest_price = average
 
-                # print(f"tickets for {event_info_variable.id} updated successfully")
-                event_data.append(event_info_variable.to_dict())
-                
-                alert_notification(old_price, event_info_variable.price, event.name, event.event_alerts, event_info_variable)
-                alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
+                    # print(f"tickets for {event_info_variable.id} updated successfully")
+                    event_data.append(event_info_variable.to_dict())
+                    
+                    alert_notification(old_price, event_info_variable.price, event.name, event.event_alerts, event_info_variable)
+                    alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
 
             db.session.commit()
 
@@ -341,10 +349,6 @@ def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
 
     if not events:
         return {"error": f"Couldn't fetch events"}, 404
-    
-    # If we are only fetching one event, scrape the site to find the ticket info
-    # if len(events) == 1:
-    #     add_scraped_data = True
 
     res = []
     for event in events:

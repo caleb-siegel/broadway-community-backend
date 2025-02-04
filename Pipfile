@@ -21,8 +21,6 @@ psycopg2-binary = "*"
 requests = "*"
 apscheduler = "*"
 sendgrid = "*"
-selenium = "*"
-webdriver_manager = "*"
 flask-session = "*"
 redis = "*"
 google-auth = "*"
@@ -30,6 +28,8 @@ google-auth-oauthlib = "*"
 google-auth-httplib2 = "*"
 twilio = "*"
 pytz = "*"
+selenium = "==4.18.1"
+webdriver-manager = "==4.0.1"
 
 [dev-packages]
 
