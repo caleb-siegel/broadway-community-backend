@@ -64,37 +64,18 @@ def get_chrome_options():
     return options
 
 def setup_driver():
+    """Set up and configure the Chrome WebDriver for serverless environment."""
     try:
         print("Setting up Chrome driver...")
         options = webdriver.ChromeOptions()
         
-        # Check various possible Chrome binary locations
-        chrome_binary = None
-        possible_locations = [
-            os.environ.get('CHROME_BIN'),
-            '/usr/bin/google-chrome-stable',
-            '/usr/bin/google-chrome',
-            '/opt/google/chrome/chrome'
-        ]
-        
-        for location in possible_locations:
-            if location and os.path.exists(location):
-                print(f"Found Chrome binary at: {location}")
-                chrome_binary = location
-                break
-        
-        if not chrome_binary:
-            print("WARNING: Could not find Chrome binary in expected locations")
-            # List contents of relevant directories for debugging
-            os.system("ls -la /usr/bin/google-chrome*")
-            os.system("ls -la /opt/google/chrome/")
-        
-        # Set Chrome binary location if found
-        if chrome_binary:
-            options.binary_location = chrome_binary
+        # Use default Chrome binary in Vercel environment
+        if os.environ.get('VERCEL'):
+            print("Running in Vercel environment")
+            options.binary_location = "/var/chrome/chrome"  # Vercel's Chrome location
         
         # Add required options for running in serverless environment
-        options.add_argument('--headless')
+        options.add_argument('--headless=new')  # Updated headless mode
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
@@ -103,31 +84,39 @@ def setup_driver():
         options.add_argument('--disable-extensions')
         options.add_argument('--single-process')
         options.add_argument('--ignore-certificate-errors')
+        options.add_argument('--remote-debugging-port=9222')
         
-        # Check ChromeDriver path
-        chromedriver_path = os.environ.get('CHROMEDRIVER_PATH', '/usr/local/bin/chromedriver')
-        print(f"Using ChromeDriver path: {chromedriver_path}")
-        if not os.path.exists(chromedriver_path):
-            print(f"WARNING: ChromeDriver not found at {chromedriver_path}")
-            os.system("ls -la /usr/local/bin/")
+        # Performance optimizations
+        options.add_argument('--disable-images')
+        options.add_argument('--blink-settings=imagesEnabled=false')
+        options.add_argument('--disable-animations')
+        options.add_argument('--disable-notifications')
+        options.add_argument('--disable-geolocation')
+        options.add_argument('--disable-infobars')
+        options.add_argument('--disable-web-security')
+        options.add_argument('--disable-site-isolation-trials')
         
-        # Initialize the service and driver
-        service = Service(executable_path=chromedriver_path)
+        # Browser identification
+        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36')
+        
+        # Initialize ChromeDriver without specifying path (use system default)
+        service = Service()
         driver = webdriver.Chrome(service=service, options=options)
         print("Chrome driver setup completed successfully")
         return driver
         
     except Exception as e:
         print(f"Error setting up Chrome driver: {str(e)}")
-        print("Environment variables:")
-        print(f"CHROME_BIN: {os.environ.get('CHROME_BIN')}")
-        print(f"CHROMEDRIVER_PATH: {os.environ.get('CHROMEDRIVER_PATH')}")
-        print("\nSystem state:")
-        os.system("which google-chrome")
-        os.system("which google-chrome-stable")
-        os.system("ls -la /usr/bin/google-chrome*")
-        os.system("ls -la /opt/google/chrome/")
-        os.system("ls -la /usr/local/bin/chromedriver")
+        print("\nEnvironment Information:")
+        print(f"VERCEL: {os.environ.get('VERCEL')}")
+        print(f"PATH: {os.environ.get('PATH')}")
+        print("\nSystem State:")
+        try:
+            subprocess.run(['which', 'chrome'], text=True, capture_output=True)
+            subprocess.run(['which', 'chromedriver'], text=True, capture_output=True)
+            subprocess.run(['ls', '-la', '/var/chrome'], text=True, capture_output=True)
+        except Exception as e2:
+            print(f"Error checking system state: {str(e2)}")
         raise
 
 def wait_for_content(driver):
