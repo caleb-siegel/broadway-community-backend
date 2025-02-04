@@ -11,6 +11,7 @@ import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import shutil
+import subprocess
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,10 +26,14 @@ def get_chrome_options():
     options = webdriver.ChromeOptions()
     
     # Basic setup for serverless environment
-    options.add_argument("--headless")
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.binary_location = "/opt/chrome/chrome"  # Lambda/Vercel Chrome path
+    
+    # Check if running on Vercel
+    if os.environ.get('VERCEL'):
+        chrome_bin = os.environ.get('CHROME_BIN', '/usr/bin/google-chrome')
+        options.binary_location = chrome_bin
     
     # Performance optimizations
     performance_args = [
@@ -46,8 +51,8 @@ def get_chrome_options():
         "--disable-background-timer-throttling",
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
-        "--single-process",  # Important for serverless
-        "--no-zygote"  # Important for serverless
+        "--single-process",
+        "--no-zygote"
     ]
     for arg in performance_args:
         options.add_argument(arg)
@@ -62,29 +67,40 @@ def setup_driver():
     """Set up and configure the Chrome WebDriver for serverless environment."""
     options = get_chrome_options()
     
-    # Use specific chromedriver path for Lambda/Vercel
-    service = Service(
-        executable_path="/opt/chromedriver",
-    )
-    
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.set_page_load_timeout(8)  # Reduced timeout for serverless
-    driver.set_script_timeout(8)  # Reduced timeout for serverless
-    
-    # Set headers
-    driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
-        'headers': {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-        }
-    })
-    
-    return driver
+    try:
+        # Try to detect Chrome version
+        if os.environ.get('VERCEL'):
+            chrome_version = subprocess.check_output(['google-chrome', '--version']).decode().strip().split()[-1]
+            logger.info(f"Detected Chrome version: {chrome_version}")
+        
+        # Set up ChromeDriver
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        from selenium.webdriver.chrome.options import Options
+        
+        # Use default system ChromeDriver if available
+        service = ChromeService()
+        
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(8)
+        driver.set_script_timeout(8)
+        
+        # Set headers
+        driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
+            'headers': {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        })
+        
+        return driver
+    except Exception as e:
+        logger.error(f"Failed to set up driver: {str(e)}")
+        raise
 
 def wait_for_content(driver):
     """Wait for page content to load and be accessible."""

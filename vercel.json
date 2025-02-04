@@ -5,11 +5,16 @@
             "src": "app.py",
             "use": "@vercel/python",
             "config": {
-                "maxDuration": 30
+                "maxDuration": 30,
+                "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh"
             }
         }
     ],
     "routes": [
         {"src": "/(.*)", "dest": "app.py"}
-    ]
+    ],
+    "env": {
+        "CHROME_BIN": "/usr/bin/google-chrome",
+        "CHROMEDRIVER_PATH": "/usr/local/bin/chromedriver"
+    }
 }
