@@ -3,22 +3,13 @@
     "builds": [
         {
             "src": "app.py",
-            "use": "@vercel/python",
-            "config": {
-                "installCommand": "bash vercel-build.sh && pip install -r requirements.txt"
-            }
+            "use": "@vercel/python"
         }
     ],
     "routes": [
         {"src": "/(.*)", "dest": "app.py"}
     ],
     "env": {
-        "CHROME_BIN": "/usr/bin/google-chrome",
-        "CHROMEDRIVER_PATH": "/usr/local/bin/chromedriver"
-    },
-    "build": {
-        "env": {
-            "VERCEL_TIMEOUT": "60000"
-        }
+        "SCRAPING_API_KEY": "@scraping_api_key"
     }
 }

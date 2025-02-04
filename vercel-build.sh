@@ -9,29 +9,31 @@ echo "Starting ChromeDriver installation..."
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Script directory: $SCRIPT_DIR"
 
-# Download and install ChromeDriver
+# Install Chrome
+echo "Installing Chrome..."
+apt-get update
+apt-get install -y wget gnupg2
+wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list
+apt-get update
+apt-get install -y google-chrome-stable
+
+# Create directory for Chrome
+mkdir -p /var/chrome
+ln -s /usr/bin/google-chrome-stable /var/chrome/chrome
+
+# Install ChromeDriver
 echo "Installing ChromeDriver..."
-CHROME_VERSION="121"  # Use a specific version that matches Vercel's Chrome
-CHROMEDRIVER_VERSION=$(curl -sS "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-echo "Installing ChromeDriver version: $CHROMEDRIVER_VERSION"
+CHROME_VERSION=$(google-chrome --version | cut -d " " -f3 | cut -d "." -f1)
+CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}")
+wget -q -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+unzip -o /tmp/chromedriver.zip -d /var/chrome/
+chmod +x /var/chrome/chromedriver
 
-wget -q -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-unzip -o /tmp/chromedriver.zip -d "$SCRIPT_DIR"
-chmod +x "$SCRIPT_DIR/chromedriver"
-
-echo "ChromeDriver installation completed. Verifying installation..."
-ls -la "$SCRIPT_DIR/chromedriver"
-"$SCRIPT_DIR/chromedriver" --version
-
-# Check Chrome installation
-echo "Checking Chrome installation..."
-for chrome_path in "/opt/google/chrome/chrome" "/usr/bin/google-chrome" "/usr/bin/google-chrome-stable"; do
-    if [ -f "$chrome_path" ]; then
-        echo "Chrome found at: $chrome_path"
-        "$chrome_path" --version
-        break
-    fi
-done
+# Verify installations
+echo "Verifying installations..."
+/var/chrome/chrome --version
+/var/chrome/chromedriver --version
 
 # Install Python dependencies
 echo "Installing Python dependencies..."

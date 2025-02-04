@@ -8,7 +8,7 @@ import sendgrid
 from sendgrid.helpers.mail import Mail
 from sqlalchemy.orm import joinedload
 from collections import defaultdict
-from stubhub_scraper import scrape_with_selenium
+from stubhub_scraper import scrape_with_api
 from twilio.rest import Client
 import logging
 
@@ -261,7 +261,7 @@ def fetch_stubhub_data(events):
             if not event.event_info:
                 
                 # scrape the event page to get the seat info
-                seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
+                # seat_info = scrape_with_api(cheapest_ticket["_links"]["event:webpage"]["href"])
                 
                 # post new entry
                 new_event_info = Event_Info (
@@ -277,10 +277,10 @@ def fetch_stubhub_data(events):
                     average_denominator = 1,
                     average_lowest_price = round(cheapest_ticket["min_ticket_price"]["amount"]),
                     updated_at = datetime.now(),
-                    location = seat_info["location"] if seat_info else None,
-                    row = seat_info["row"] if seat_info else None,
-                    quantity = seat_info["quantity"] if seat_info else None,
-                    note = seat_info["note"] if seat_info else None,
+                    # location = seat_info["location"] if seat_info else None,
+                    # row = seat_info["row"] if seat_info else None,
+                    # quantity = seat_info["quantity"] if seat_info else None,
+                    # note = seat_info["note"] if seat_info else None,
                 )
                 db.session.add(new_event_info)
 
@@ -304,11 +304,16 @@ def fetch_stubhub_data(events):
                 new_link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
 
                 if new_price == old_price and complete_formatted_date == old_formatted_date and new_link == old_link:
-                    logger.info(f"no changes to {event.name}")                    
+                    logger.info(f"no changes to {event.name}")
+                    
+                    # MAKE SURE TO REMOVE THIS (added just for testing)
+                    # seat_info = scrape_with_api(cheapest_ticket["_links"]["event:webpage"]["href"])
+                    
+                    
                     event_data.append(event.event_info[0].to_dict())
                 else:
                     # scrape the event page to get the seat info
-                    seat_info = scrape_with_selenium(cheapest_ticket["_links"]["event:webpage"]["href"])
+                    # seat_info = scrape_with_api(cheapest_ticket["_links"]["event:webpage"]["href"])
                     
 
                     # patch entry with new info
@@ -323,10 +328,10 @@ def fetch_stubhub_data(events):
                     event_info_variable.sortable_date = non_formatted_datetime,
                     event_info_variable.link = new_link
                     event_info_variable.updated_at = datetime.now()
-                    event_info_variable.location = seat_info["location"] if seat_info else None
-                    event_info_variable.row = seat_info["row"] if seat_info else None
-                    event_info_variable.quantity = seat_info["quantity"] if seat_info else None
-                    event_info_variable.note = seat_info["note"] if seat_info else None
+                    # event_info_variable.location = seat_info["location"] if seat_info else None
+                    # event_info_variable.row = seat_info["row"] if seat_info else None
+                    # event_info_variable.quantity = seat_info["quantity"] if seat_info else None
+                    # event_info_variable.note = seat_info["note"] if seat_info else None
 
                     # update the average
                     new_count = event.event_info[0].average_denominator + 1
