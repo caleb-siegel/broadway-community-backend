@@ -6,7 +6,7 @@
             "use": "@vercel/python",
             "config": {
                 "maxDuration": 30,
-                "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh"
+                "installCommand": "bash vercel-build.sh && pip install -r requirements.txt"
             }
         }
     ],
