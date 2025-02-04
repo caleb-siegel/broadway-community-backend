@@ -3,7 +3,6 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 import logging
 import sys
 import platform
@@ -11,6 +10,7 @@ import os
 import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import shutil
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,10 +24,11 @@ def get_chrome_options():
     """Configure Chrome options for headless scraping with optimizations."""
     options = webdriver.ChromeOptions()
     
-    # Basic setup
+    # Basic setup for serverless environment
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.binary_location = "/opt/chrome/chrome"  # Lambda/Vercel Chrome path
     
     # Performance optimizations
     performance_args = [
@@ -44,7 +45,9 @@ def get_chrome_options():
         "--ignore-certificate-errors",
         "--disable-background-timer-throttling",
         "--disable-backgrounding-occluded-windows",
-        "--disable-renderer-backgrounding"
+        "--disable-renderer-backgrounding",
+        "--single-process",  # Important for serverless
+        "--no-zygote"  # Important for serverless
     ]
     for arg in performance_args:
         options.add_argument(arg)
@@ -56,18 +59,17 @@ def get_chrome_options():
     return options
 
 def setup_driver():
-    """Set up and configure the Chrome WebDriver."""
+    """Set up and configure the Chrome WebDriver for serverless environment."""
     options = get_chrome_options()
-    base_path = ChromeDriverManager().install()
-    chrome_driver_path = base_path.replace('THIRD_PARTY_NOTICES.chromedriver', 'chromedriver')
     
-    service = Service(executable_path=chrome_driver_path, port=9515)
-    os.chmod(chrome_driver_path, 0o755)
-    service.start()
+    # Use specific chromedriver path for Lambda/Vercel
+    service = Service(
+        executable_path="/opt/chromedriver",
+    )
     
     driver = webdriver.Chrome(service=service, options=options)
-    driver.set_page_load_timeout(15)
-    driver.set_script_timeout(15)
+    driver.set_page_load_timeout(8)  # Reduced timeout for serverless
+    driver.set_script_timeout(8)  # Reduced timeout for serverless
     
     # Set headers
     driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
@@ -86,8 +88,8 @@ def setup_driver():
 
 def wait_for_content(driver):
     """Wait for page content to load and be accessible."""
-    # Wait for app element and document complete
-    WebDriverWait(driver, 5).until(
+    # Wait for app element and document complete with shorter timeout
+    WebDriverWait(driver, 3).until(
         EC.all_of(
             EC.presence_of_element_located((By.ID, "app")),
             lambda d: d.execute_script("return document.readyState") == "complete"
@@ -96,7 +98,7 @@ def wait_for_content(driver):
     
     # Wait for price or sort elements
     try:
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(driver, 3).until(
             EC.any_of(
                 EC.presence_of_element_located((By.XPATH, "//*[contains(text(), '$')]")),
                 EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'Sort by price')]"))
@@ -105,7 +107,7 @@ def wait_for_content(driver):
     except Exception:
         logger.warning("Timeout waiting for price elements")
     
-    time.sleep(0.5)  # Short wait for final render
+    time.sleep(0.3)  # Reduced sleep for serverless
 
 def extract_ticket_info(raw_text, listings=None):
     """Extract ticket information from page content."""
