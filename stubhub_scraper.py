@@ -72,10 +72,21 @@ def setup_driver():
         # Use default Chrome binary in Vercel environment
         if os.environ.get('VERCEL'):
             print("Running in Vercel environment")
-            options.binary_location = "/var/chrome/chrome"  # Vercel's Chrome location
+            chrome_binary = "/var/chrome/chrome"
+            chromedriver_path = "/var/task/chromedriver"  # This will be set by vercel-build.sh
+            
+            print(f"Chrome binary path: {chrome_binary}")
+            print(f"ChromeDriver path: {chromedriver_path}")
+            
+            if not os.path.exists(chrome_binary):
+                print(f"Warning: Chrome binary not found at {chrome_binary}")
+            if not os.path.exists(chromedriver_path):
+                print(f"Warning: ChromeDriver not found at {chromedriver_path}")
+            
+            options.binary_location = chrome_binary
         
         # Add required options for running in serverless environment
-        options.add_argument('--headless=new')  # Updated headless mode
+        options.add_argument('--headless=new')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
@@ -85,6 +96,8 @@ def setup_driver():
         options.add_argument('--single-process')
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--remote-debugging-port=9222')
+        options.add_argument('--disable-setuid-sandbox')
+        options.add_argument('--disable-dev-tools')
         
         # Performance optimizations
         options.add_argument('--disable-images')
@@ -99,8 +112,12 @@ def setup_driver():
         # Browser identification
         options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36')
         
-        # Initialize ChromeDriver without specifying path (use system default)
-        service = Service()
+        # Initialize ChromeDriver with specific path in Vercel environment
+        if os.environ.get('VERCEL'):
+            service = Service(executable_path=chromedriver_path)
+        else:
+            service = Service()  # Use default for local development
+            
         driver = webdriver.Chrome(service=service, options=options)
         print("Chrome driver setup completed successfully")
         return driver
@@ -112,9 +129,14 @@ def setup_driver():
         print(f"PATH: {os.environ.get('PATH')}")
         print("\nSystem State:")
         try:
-            subprocess.run(['which', 'chrome'], text=True, capture_output=True)
-            subprocess.run(['which', 'chromedriver'], text=True, capture_output=True)
-            subprocess.run(['ls', '-la', '/var/chrome'], text=True, capture_output=True)
+            print("Checking Chrome installation:")
+            if os.path.exists('/var/chrome/chrome'):
+                print("Chrome exists at /var/chrome/chrome")
+            if os.path.exists('/var/task/chromedriver'):
+                print("ChromeDriver exists at /var/task/chromedriver")
+            print("\nDirectory contents:")
+            print("/var/chrome/:", os.listdir('/var/chrome') if os.path.exists('/var/chrome') else "Directory not found")
+            print("/var/task/:", os.listdir('/var/task') if os.path.exists('/var/task') else "Directory not found")
         except Exception as e2:
             print(f"Error checking system state: {str(e2)}")
         raise
