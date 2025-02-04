@@ -64,42 +64,70 @@ def get_chrome_options():
     return options
 
 def setup_driver():
-    """Set up and configure the Chrome WebDriver for serverless environment."""
-    options = get_chrome_options()
-    
     try:
-        # Try to detect Chrome version
-        if os.environ.get('VERCEL'):
-            chrome_version = subprocess.check_output(['google-chrome', '--version']).decode().strip().split()[-1]
-            logger.info(f"Detected Chrome version: {chrome_version}")
+        print("Setting up Chrome driver...")
+        options = webdriver.ChromeOptions()
         
-        # Set up ChromeDriver
-        from selenium.webdriver.chrome.service import Service as ChromeService
-        from selenium.webdriver.chrome.options import Options
+        # Check various possible Chrome binary locations
+        chrome_binary = None
+        possible_locations = [
+            os.environ.get('CHROME_BIN'),
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome',
+            '/opt/google/chrome/chrome'
+        ]
         
-        # Use default system ChromeDriver if available
-        service = ChromeService()
+        for location in possible_locations:
+            if location and os.path.exists(location):
+                print(f"Found Chrome binary at: {location}")
+                chrome_binary = location
+                break
         
+        if not chrome_binary:
+            print("WARNING: Could not find Chrome binary in expected locations")
+            # List contents of relevant directories for debugging
+            os.system("ls -la /usr/bin/google-chrome*")
+            os.system("ls -la /opt/google/chrome/")
+        
+        # Set Chrome binary location if found
+        if chrome_binary:
+            options.binary_location = chrome_binary
+        
+        # Add required options for running in serverless environment
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-software-rasterizer')
+        options.add_argument('--hide-scrollbars')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--single-process')
+        options.add_argument('--ignore-certificate-errors')
+        
+        # Check ChromeDriver path
+        chromedriver_path = os.environ.get('CHROMEDRIVER_PATH', '/usr/local/bin/chromedriver')
+        print(f"Using ChromeDriver path: {chromedriver_path}")
+        if not os.path.exists(chromedriver_path):
+            print(f"WARNING: ChromeDriver not found at {chromedriver_path}")
+            os.system("ls -la /usr/local/bin/")
+        
+        # Initialize the service and driver
+        service = Service(executable_path=chromedriver_path)
         driver = webdriver.Chrome(service=service, options=options)
-        driver.set_page_load_timeout(8)
-        driver.set_script_timeout(8)
-        
-        # Set headers
-        driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
-            'headers': {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        })
-        
+        print("Chrome driver setup completed successfully")
         return driver
+        
     except Exception as e:
-        logger.error(f"Failed to set up driver: {str(e)}")
+        print(f"Error setting up Chrome driver: {str(e)}")
+        print("Environment variables:")
+        print(f"CHROME_BIN: {os.environ.get('CHROME_BIN')}")
+        print(f"CHROMEDRIVER_PATH: {os.environ.get('CHROMEDRIVER_PATH')}")
+        print("\nSystem state:")
+        os.system("which google-chrome")
+        os.system("which google-chrome-stable")
+        os.system("ls -la /usr/bin/google-chrome*")
+        os.system("ls -la /opt/google/chrome/")
+        os.system("ls -la /usr/local/bin/chromedriver")
         raise
 
 def wait_for_content(driver):
