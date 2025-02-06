@@ -306,9 +306,9 @@ def fetch_stubhub_data(events):
                 if new_price == old_price and complete_formatted_date == old_formatted_date and new_link == old_link:
                     logger.info(f"no changes to {event.name}")
                     
-                    # MAKE SURE TO REMOVE THIS (added just for testing)
-                    # seat_info = scrape_with_api(cheapest_ticket["_links"]["event:webpage"]["href"])
-                    
+                    # Update the updated_at timestamp even when no other changes
+                    event_info_variable = event.event_info[0]
+                    event_info_variable.updated_at = datetime.now()
                     
                     event_data.append(event.event_info[0].to_dict())
                 else:
