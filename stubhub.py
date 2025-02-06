@@ -11,6 +11,7 @@ from collections import defaultdict
 from stubhub_scraper import scrape_with_api
 from twilio.rest import Client
 import logging
+import pytz
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -263,6 +264,10 @@ def fetch_stubhub_data(events):
                 # scrape the event page to get the seat info
                 # seat_info = scrape_with_api(cheapest_ticket["_links"]["event:webpage"]["href"])
                 
+                # Set current time in ET timezone
+                est = pytz.timezone('America/New_York')
+                current_time = datetime.now(est)
+                
                 # post new entry
                 new_event_info = Event_Info (
                     name = cheapest_ticket["name"],
@@ -276,7 +281,7 @@ def fetch_stubhub_data(events):
                     link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
                     average_denominator = 1,
                     average_lowest_price = round(cheapest_ticket["min_ticket_price"]["amount"]),
-                    updated_at = datetime.now(),
+                    updated_at = current_time,
                     # location = seat_info["location"] if seat_info else None,
                     # row = seat_info["row"] if seat_info else None,
                     # quantity = seat_info["quantity"] if seat_info else None,
@@ -327,7 +332,9 @@ def fetch_stubhub_data(events):
                     event_info_variable.formatted_date = complete_formatted_date
                     event_info_variable.sortable_date = non_formatted_datetime,
                     event_info_variable.link = new_link
-                    event_info_variable.updated_at = datetime.now()
+                    # Set updated_at in ET timezone
+                    est = pytz.timezone('America/New_York')
+                    event_info_variable.updated_at = datetime.now(est)
                     # event_info_variable.location = seat_info["location"] if seat_info else None
                     # event_info_variable.row = seat_info["row"] if seat_info else None
                     # event_info_variable.quantity = seat_info["quantity"] if seat_info else None
