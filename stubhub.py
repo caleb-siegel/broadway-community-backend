@@ -313,7 +313,9 @@ def fetch_stubhub_data(events):
                     
                     # Update the updated_at timestamp even when no other changes
                     event_info_variable = event.event_info[0]
-                    event_info_variable.updated_at = datetime.now()
+                    # Set updated_at in ET timezone
+                    est = pytz.timezone('America/New_York')
+                    event_info_variable.updated_at = datetime.now(est)
                     
                     event_data.append(event.event_info[0].to_dict())
                 else:
