@@ -30,20 +30,20 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
     if alerts:
         for alert in alerts:
             alert_price = alert.price
-            if current_price <= alert_price and (old_price is None or current_price < old_price):
+            if (current_price * 1.32) <= alert_price and (old_price is None or current_price < old_price):
                 if alert.send_email:
                     message = Mail(
                         from_email='broadway.comms@gmail.com',
                         to_emails=alert.user.email,
-                        subject=f'Price Alert: {name} ${current_price}',
+                        subject=f'Price Alert: {name} ~${current_price * 1.32}',
                         html_content=f"""
-                <strong>{name}</strong> is selling at <strong>${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${alert_price}.<br><br>
+                <strong>{name}</strong> is selling at <strong>~${current_price * 1.32}</strong>. It was previously selling for ${old_price * 1.32} and you requested to be notified if it dropped below ${alert_price}.<br><br>
                 
                 This show is on {event_info.formatted_date}.<br><br>
                 
                 <a href="{event_info.link}">Buy the tickets here</a><br><br>
                 
-                <em>Remember that these prices don't reflect StubHub's fees, so you should expect the complete price to be around 30% higher than the amount shown above.</em>
+                <em>Remember that these prices estimate the fees so the actual price might be slightly different than the prices shown.</em>
             """
                     )
                     try:
