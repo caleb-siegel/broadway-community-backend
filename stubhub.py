@@ -332,7 +332,7 @@ def fetch_stubhub_data(events):
                     event_info_variable.event_date = non_formatted_date
                     event_info_variable.event_weekday = non_formatted_weekday
                     event_info_variable.formatted_date = complete_formatted_date
-                    event_info_variable.sortable_date = non_formatted_datetime,
+                    event_info_variable.sortable_date = non_formatted_datetime
                     event_info_variable.link = new_link
                     # Set updated_at in ET timezone
                     est = pytz.timezone('America/New_York')
@@ -365,8 +365,10 @@ def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
         return {"error": f"Couldn't fetch events"}, 404
 
     res = []
+    est = pytz.timezone('US/Eastern')
+    current_time = datetime.now(est)
+    
     for event in events:
-        
         # if there is no associated venue with the event, assign an empty string to lat and long values
         if event.venue:
             latitude = event.venue.latitude
@@ -375,47 +377,55 @@ def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
             latitude = ""
             longitude = ""
         
-        # address edge case of updated_at variable value from database
-        if not event.event_info:
-            updated_at = ""
-        elif not event.event_info[0].updated_at:
-            updated_at = ""
-        else:
-            updated_at = event.event_info[0].updated_at
+        # Get the most recent event info for average price calculation
+        recent_event_info = None
+        if event.event_info:
+            recent_event_info = max(event.event_info, key=lambda x: x.updated_at if x.updated_at else datetime.min)
         
         endpoint = get_category_link(event.stubhub_category_id, "", latitude, longitude, 100)
         events_data = get_broadway_tickets(token, endpoint)
         
-        event_data = []
         if not events_data["_embedded"]["items"]:
             continue
         else:
             cheapest_ticket = find_cheapest_ticket(events_data, start_date, end_date)
             
             if cheapest_ticket is not None:
-
                 start_date_var = cheapest_ticket["start_date"]
                 non_formatted_datetime = datetime.strptime(start_date_var, "%Y-%m-%dT%H:%M:%S%z")
                 formatted_date = non_formatted_datetime.strftime("%a, %b %-d, %Y %-I%p")
                 complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
                 
+                # Calculate average lowest price from recent history
+                avg_lowest_price = None
+                if recent_event_info and recent_event_info.price:
+                    avg_lowest_price = recent_event_info.average_lowest_price
+                
+                # Calculate current price
+                current_price = round(cheapest_ticket["min_ticket_price"]["amount"])
+                
+                # Calculate price difference percentage
+                price_diff_percent = 0
+                if avg_lowest_price and avg_lowest_price > 0:
+                    price_diff_percent = ((current_price - avg_lowest_price) / avg_lowest_price) * 100
+                
                 cheapest_event_info = {
                     "event_info": [
                         {
                             "name": cheapest_ticket["name"],
-                            "price": round(cheapest_ticket["min_ticket_price"]["amount"]),
+                            "price": current_price,
                             "formatted_date": complete_formatted_date,
-                            # "sortable_date": non_formatted_datetime,
                             "link": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
-                            # location = seat_info["location"] if (seat_info and add_scraped_data) else None,
-                            # row = seat_info["row"] if (seat_info and add_scraped_data) else None,
-                            # quantity = seat_info["quantity"] if (seat_info and add_scraped_data) else None,
-                            # note = seat_info["note"] if (seat_info and add_scraped_data) else None,
+                            "updated_at": current_time.strftime("%a, %b %-d, %-I:%M %p ET"),
+                            "average_lowest_price": avg_lowest_price,
+                            "event_date": non_formatted_datetime.strftime("%Y-%m-%d")
                         }
                     ],
                     "id": event.id,
                     "name": event.name,
                     "category_id": event.category_id,
+                    "image": event.image,
+                    "venue": event.venue.to_dict() if event.venue else None
                 }            
                 res.append(cheapest_event_info)
     return res
