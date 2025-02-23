@@ -12,6 +12,8 @@ from stubhub_scraper import scrape_with_api
 from twilio.rest import Client
 import logging
 import pytz
+from decimal import Decimal
+import math
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -35,9 +37,9 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                     message = Mail(
                         from_email='broadway.comms@gmail.com',
                         to_emails=alert.user.email,
-                        subject=f'Price Alert: {name} ~${current_price * 1.32}',
+                        subject=f'Price Alert: {name} ${math.ceil(current_price * 1.32)}',
                         html_content=f"""
-                <strong>{name}</strong> is selling at <strong>~${current_price * 1.32}</strong>. It was previously selling for ${old_price * 1.32} and you requested to be notified if it dropped below ${alert_price}.<br><br>
+                <strong>{name}</strong> is selling at <strong>~${math.ceil(current_price * 1.32)}</strong>. It was previously selling for ${math.ceil(old_price * 1.32)} and you requested to be notified if it dropped below ${alert_price}.<br><br>
                 
                 This show is on {event_info.formatted_date}.<br><br>
                 
@@ -211,150 +213,174 @@ def find_cheapest_ticket(events, start_date=datetime.now().isoformat(), end_date
 
 # function to call stubhub and update the database with the new data
 def fetch_stubhub_data(events):
-    
-    token = get_stubhub_token(client_id, client_secret)
+    try:
+        token = get_stubhub_token(client_id, client_secret)
+    except Exception as e:
+        logger.error(f"Failed to get Stubhub token: {str(e)}")
+        return {"error": "Authentication failed with Stubhub API"}, 401
     
     if not events:
-        return {"error": f"Couldn't fetch events"}, 404
+        logger.warning("No events provided to fetch_stubhub_data")
+        return {"error": "No events provided"}, 404
 
+    event_data = []
     for event in events:
-        # if there is no associated venue with the event, assign an empty string to lat and long values
-        if event.venue:
-            latitude = event.venue.latitude
-            longitude = event.venue.longitude
-        else:
-            latitude = ""
-            longitude = ""
-        
-        # address edge case of updated_at variable value from database
-        if not event.event_info:
-            updated_at = ""
-        elif not event.event_info[0].updated_at:
-            updated_at = ""
-        else:
-            updated_at = event.event_info[0].updated_at
-        
-        endpoint = get_category_link(event.stubhub_category_id, "", latitude, longitude, 100)
-        
-        events_data = get_broadway_tickets(token, endpoint)
-        
-        event_data = []
-        if not events_data["_embedded"]["items"]:
-            continue
-        else:
-            cheapest_ticket = find_cheapest_ticket(events_data)
-            
-            start_date = cheapest_ticket["start_date"]
-            non_formatted_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
-            
-            non_formatted_time = non_formatted_datetime.time()
-            non_formatted_date = non_formatted_datetime.date()
-            non_formatted_weekday = non_formatted_datetime.weekday()
-            
-            formatted_time = non_formatted_datetime.strftime("%-I:%M%p").lower()
-            formatted_date = non_formatted_datetime.strftime("%a, %b %-d, %Y %-I%p")
-            complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
-            formatted_weekday = non_formatted_datetime.strftime("%a")
-
-            old_price = 0
-
-            # if event_info is empty
-            if not event.event_info:
-                
-                # scrape the event page to get the seat info
-                # seat_info = scrape_with_api(cheapest_ticket["_links"]["event:webpage"]["href"])
-                
-                # Set current time in ET timezone
-                est = pytz.timezone('America/New_York')
-                current_time = datetime.now(est)
-                
-                # post new entry
-                new_event_info = Event_Info (
-                    name = cheapest_ticket["name"],
-                    event_id = event.id,
-                    price = round(cheapest_ticket["min_ticket_price"]["amount"]),
-                    event_time = non_formatted_time,
-                    event_date = non_formatted_date,
-                    event_weekday = non_formatted_weekday,
-                    formatted_date = complete_formatted_date,
-                    sortable_date = non_formatted_datetime,
-                    link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
-                    average_denominator = 1,
-                    average_lowest_price = round(cheapest_ticket["min_ticket_price"]["amount"]),
-                    updated_at = current_time,
-                    # location = seat_info["location"] if seat_info else None,
-                    # row = seat_info["row"] if seat_info else None,
-                    # quantity = seat_info["quantity"] if seat_info else None,
-                    # note = seat_info["note"] if seat_info else None,
-                )
-                db.session.add(new_event_info)
-
-                print(f"tickets for {new_event_info.name} added to the database")
-                event_data.append(new_event_info.to_dict())
-                
-                alert_notification(old_price, new_event_info.price, event.name, event.event_alerts, new_event_info)
-                alert_notification(old_price, new_event_info.price, event.name, event.category.category_alerts, new_event_info)
-                
-                # db.session.commit()
-
-            # if database price is lower than the scraped stubhub minimum price
-            # elif round(cheapest_ticket["min_ticket_price"]["amount"]) > event.event_info[0].price:
-            #     print(f'since the scraped cheapest ticket ({round(cheapest_ticket["min_ticket_price"]["amount"])}) isnt less than the old cheapest ticket ({event.event_info[0].price}, we arent changing anything)')
-            #     continue
+        try:
+            # if there is no associated venue with the event, assign an empty string to lat and long values
+            if event.venue:
+                latitude = event.venue.latitude
+                longitude = event.venue.longitude
             else:
-                old_price = event.event_info[0].price
-                new_price = round(cheapest_ticket["min_ticket_price"]["amount"])
-                old_formatted_date = event.event_info[0].formatted_date
-                old_link = event.event_info[0].link
-                new_link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
+                latitude = ""
+                longitude = ""
+            
+            # address edge case of updated_at variable value from database
+            if not event.event_info:
+                updated_at = ""
+            elif not event.event_info[0].updated_at:
+                updated_at = ""
+            else:
+                updated_at = event.event_info[0].updated_at
+            
+            endpoint = get_category_link(event.stubhub_category_id, "", latitude, longitude, 100)
+            
+            try:
+                events_data = get_broadway_tickets(token, endpoint)
+                if not events_data:
+                    logger.error(f"Failed to get data from Stubhub API for event {event.name} (ID: {event.id})")
+                    continue
+            except Exception as e:
+                logger.error(f"API call failed for event {event.name} (ID: {event.id}): {str(e)}")
+                continue
+            
+            if not events_data["_embedded"]["items"]:
+                logger.info(f"No ticket data available for event {event.name} (ID: {event.id})")
+                continue
+            
+            try:
+                cheapest_ticket = find_cheapest_ticket(events_data)
+                if not cheapest_ticket:
+                    logger.info(f"No valid tickets found for event {event.name} (ID: {event.id})")
+                    continue
+                
+                start_date = cheapest_ticket["start_date"]
+                non_formatted_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
+                
+                non_formatted_time = non_formatted_datetime.time()
+                non_formatted_date = non_formatted_datetime.date()
+                non_formatted_weekday = non_formatted_datetime.weekday()
+                
+                formatted_time = non_formatted_datetime.strftime("%-I:%M%p").lower()
+                formatted_date = non_formatted_datetime.strftime("%a, %b %-d, %Y %-I%p")
+                complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
+                formatted_weekday = non_formatted_datetime.strftime("%a")
 
-                if new_price == old_price and complete_formatted_date == old_formatted_date and new_link == old_link:
-                    logger.info(f"no changes to {event.name}")
-                    
-                    # Update the updated_at timestamp even when no other changes
-                    event_info_variable = event.event_info[0]
-                    # Set updated_at in ET timezone
+                old_price = 0
+
+                # if event_info is empty
+                if not event.event_info:
+                    # Set current time in ET timezone
                     est = pytz.timezone('America/New_York')
-                    event_info_variable.updated_at = datetime.now(est)
+                    current_time = datetime.now(est)
                     
-                    event_data.append(event.event_info[0].to_dict())
+                    try:
+                        # post new entry
+                        new_event_info = Event_Info(
+                            name=cheapest_ticket["name"],
+                            event_id=event.id,
+                            price=round(cheapest_ticket["min_ticket_price"]["amount"]),
+                            event_time=non_formatted_time,
+                            event_date=non_formatted_date,
+                            event_weekday=non_formatted_weekday,
+                            formatted_date=complete_formatted_date,
+                            sortable_date=non_formatted_datetime,
+                            link=partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
+                            average_denominator=1,
+                            average_lowest_price=round(cheapest_ticket["min_ticket_price"]["amount"]),
+                            updated_at=current_time,
+                        )
+                        db.session.add(new_event_info)
+
+                        logger.info(f"Added new event info for {new_event_info.name}")
+                        event_data.append(new_event_info.to_dict())
+                        
+                        alert_notification(old_price, new_event_info.price, event.name, event.event_alerts, new_event_info)
+                        alert_notification(old_price, new_event_info.price, event.name, event.category.category_alerts, new_event_info)
+                        
+                    except Exception as e:
+                        logger.error(f"Failed to create new event info for {event.name} (ID: {event.id}): {str(e)}")
+                        db.session.rollback()
+                        continue
+
                 else:
-                    # scrape the event page to get the seat info
-                    # seat_info = scrape_with_api(cheapest_ticket["_links"]["event:webpage"]["href"])
-                    
+                    try:
+                        old_price = float(event.event_info[0].price)
+                        new_price = float(round(cheapest_ticket["min_ticket_price"]["amount"]))
+                        old_formatted_date = event.event_info[0].formatted_date
+                        old_link = event.event_info[0].link
+                        new_link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
 
-                    # patch entry with new info
-                    event_info_variable = event.event_info[0]
-                    event_info_variable.name = cheapest_ticket["name"]
-                    event_info_variable.event_id = event.id
-                    event_info_variable.price = new_price
-                    event_info_variable.event_time = non_formatted_time
-                    event_info_variable.event_date = non_formatted_date
-                    event_info_variable.event_weekday = non_formatted_weekday
-                    event_info_variable.formatted_date = complete_formatted_date
-                    event_info_variable.sortable_date = non_formatted_datetime
-                    event_info_variable.link = new_link
-                    # Set updated_at in ET timezone
-                    est = pytz.timezone('America/New_York')
-                    event_info_variable.updated_at = datetime.now(est)
-                    # event_info_variable.location = seat_info["location"] if seat_info else None
-                    # event_info_variable.row = seat_info["row"] if seat_info else None
-                    # event_info_variable.quantity = seat_info["quantity"] if seat_info else None
-                    # event_info_variable.note = seat_info["note"] if seat_info else None
+                        if new_price == old_price and complete_formatted_date == old_formatted_date and new_link == old_link:
+                            # No need to log when nothing changes
+                            event_info_variable = event.event_info[0]
+                            est = pytz.timezone('America/New_York')
+                            event_info_variable.updated_at = datetime.now(est)
+                            event_data.append(event.event_info[0].to_dict())
+                        else:
+                            # patch entry with new info
+                            event_info_variable = event.event_info[0]
+                            try:
+                                event_info_variable.name = cheapest_ticket["name"]
+                                event_info_variable.event_id = event.id
+                                event_info_variable.price = new_price
+                                event_info_variable.event_time = non_formatted_time
+                                event_info_variable.event_date = non_formatted_date
+                                event_info_variable.event_weekday = non_formatted_weekday
+                                event_info_variable.formatted_date = complete_formatted_date
+                                event_info_variable.sortable_date = non_formatted_datetime
+                                event_info_variable.link = new_link
+                                est = pytz.timezone('America/New_York')
+                                event_info_variable.updated_at = datetime.now(est)
 
-                    # update the average
-                    new_count = event.event_info[0].average_denominator + 1
-                    average = ((event.event_info[0].average_lowest_price * (new_count - 1)) + new_price) / (new_count)
-                    event_info_variable.average_denominator = new_count
-                    event_info_variable.average_lowest_price = average
+                                # update the average using floats
+                                new_count = float(event.event_info[0].average_denominator + 1)
+                                old_average = float(event.event_info[0].average_lowest_price)
+                                try:
+                                    average = ((old_average * (new_count - 1)) + new_price) / new_count
+                                except Exception as e:
+                                    logger.error(f"Failed to calculate average price for {event.name} (ID: {event.id}). Values: old_avg={old_average}, new_count={new_count}, new_price={new_price}. Error: {str(e)}")
+                                    raise
+                                event_info_variable.average_denominator = int(new_count)
+                                event_info_variable.average_lowest_price = float(average)
 
-                    # print(f"tickets for {event_info_variable.id} updated successfully")
-                    event_data.append(event_info_variable.to_dict())
-                    
-                    alert_notification(old_price, event_info_variable.price, event.name, event.event_alerts, event_info_variable)
-                    alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
+                                logger.info(f"Updated {event.name}: Price ${old_price} -> ${new_price}")
+                                event_data.append(event_info_variable.to_dict())
+                                
+                                alert_notification(old_price, event_info_variable.price, event.name, event.event_alerts, event_info_variable)
+                                alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
+                            except Exception as e:
+                                logger.error(f"Failed to update event info fields for {event.name} (ID: {event.id}): {str(e)}")
+                                raise
 
+                    except Exception as e:
+                        logger.error(f"Failed to update event info for {event.name} (ID: {event.id}): {str(e)}")
+                        db.session.rollback()
+                        continue
+
+            except Exception as e:
+                logger.error(f"Error processing ticket data for {event.name} (ID: {event.id}): {str(e)}")
+                continue
+
+        except Exception as e:
+            logger.error(f"Unexpected error processing event {event.name if hasattr(event, 'name') else 'Unknown'}: {str(e)}")
+            continue
+
+        try:
             db.session.commit()
+        except Exception as e:
+            logger.error(f"Database commit failed: {str(e)}")
+            db.session.rollback()
+            return {"error": "Failed to save changes to database"}, 500
 
     return event_data
         
