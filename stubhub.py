@@ -226,6 +226,11 @@ def fetch_stubhub_data(events):
     event_data = []
     for event in events:
         try:
+            # Skip closed events
+            if event.closed:
+                logger.info(f"Skipping closed event: {event.name} (ID: {event.id})")
+                continue
+
             # if there is no associated venue with the event, assign an empty string to lat and long values
             if event.venue:
                 latitude = event.venue.latitude
@@ -395,6 +400,11 @@ def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
     current_time = datetime.now(est)
     
     for event in events:
+        # Skip closed events
+        if event.closed:
+            logger.info(f"Skipping closed event: {event.name} (ID: {event.id})")
+            continue
+
         # if there is no associated venue with the event, assign an empty string to lat and long values
         if event.venue:
             latitude = event.venue.latitude
