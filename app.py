@@ -509,11 +509,20 @@ def cron_refresh_all_data():
         
         if category_name:
             # Fetch events for specific category
-            events = db.session.query(Event).join(Category).filter(Category.name == category_name).all()
+            events = db.session.query(Event).join(Category).filter(
+                Category.name == category_name,
+                Event.closed != True  # Filter out closed events
+            ).all()
         else:
             # If no category specified, get first category's events
             first_category = db.session.query(Category).first()
-            events = first_category.events if first_category else []
+            if first_category:
+                events = Event.query.filter(
+                    Event.category_id == first_category.id,
+                    Event.closed != True  # Filter out closed events
+                ).all()
+            else:
+                events = []
             category_name = first_category.name if first_category else "none"
 
         # Get current time in EST
