@@ -546,7 +546,7 @@ def cron_refresh_all_data():
 
 @app.route('/api/events/ids', methods=['GET'])
 def get_event_ids():
-    events = db.session.query(Event.id).all()
+    events = db.session.query(Event.id).filter(Event.closed != True).all()
     return jsonify([event[0] for event in events])
 
 @app.route('/api/cron/fetch-event', methods=['POST'])
