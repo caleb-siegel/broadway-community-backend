@@ -285,8 +285,7 @@ def fetch_stubhub_data(events):
                 # if event_info is empty
                 if not event.event_info:
                     # Set current time in ET timezone
-                    est = pytz.timezone('America/New_York')
-                    current_time = datetime.now(est)
+                    current_time = datetime.now()
                     
                     try:
                         # post new entry
@@ -328,8 +327,7 @@ def fetch_stubhub_data(events):
                         if new_price == old_price and complete_formatted_date == old_formatted_date and new_link == old_link:
                             # No need to log when nothing changes
                             event_info_variable = event.event_info[0]
-                            est = pytz.timezone('America/New_York')
-                            event_info_variable.updated_at = datetime.now(est)
+                            event_info_variable.updated_at = datetime.now()
                             event_data.append(event.event_info[0].to_dict())
                         else:
                             # patch entry with new info
@@ -344,8 +342,7 @@ def fetch_stubhub_data(events):
                                 event_info_variable.formatted_date = complete_formatted_date
                                 event_info_variable.sortable_date = non_formatted_datetime
                                 event_info_variable.link = new_link
-                                est = pytz.timezone('America/New_York')
-                                event_info_variable.updated_at = datetime.now(est)
+                                event_info_variable.updated_at = datetime.now()
 
                                 # update the average using floats
                                 new_count = float(event.event_info[0].average_denominator + 1)
@@ -396,8 +393,7 @@ def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
         return {"error": f"Couldn't fetch events"}, 404
 
     res = []
-    est = pytz.timezone('US/Eastern')
-    current_time = datetime.now(est)
+    current_time = datetime.now()
     
     for event in events:
         # Skip closed events

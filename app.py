@@ -526,7 +526,7 @@ def cron_refresh_all_data():
             category_name = first_category.name if first_category else "none"
 
         # Get current time in EST
-        est = pytz.timezone('America/New_York')
+        est = pytz.timezone('US/Eastern')
         current_time = datetime.now(est)
 
         # Fetch and update data
@@ -568,7 +568,7 @@ def cron_refresh_event():
             return {"error": "Event not found"}, 404
 
         # Get current time in EST
-        est = pytz.timezone('America/New_York')
+        est = pytz.timezone('US/Eastern')
         current_time = datetime.now(est)
 
         # Fetch and update data for single event
