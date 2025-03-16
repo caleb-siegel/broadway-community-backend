@@ -97,7 +97,7 @@ def token_request():
 # function to get the access token and update database with info
 def get_stubhub_token(client_id, client_secret):
     token = Token.query.first()
-    current_time = datetime.now() - timedelta(hours=4)
+    current_time = datetime.now() - timedelta(hours=5)
     
     # only generate a new token if the old one expired
     if token != None and token.expires_at > current_time:
@@ -285,7 +285,7 @@ def fetch_stubhub_data(events):
                 # if event_info is empty
                 if not event.event_info:
                     # Set current time in ET timezone
-                    current_time = datetime.now() - timedelta(hours=4)
+                    current_time = datetime.now() - timedelta(hours=5)
                     
                     try:
                         # post new entry
@@ -327,7 +327,7 @@ def fetch_stubhub_data(events):
                         if new_price == old_price and complete_formatted_date == old_formatted_date and new_link == old_link:
                             # No need to log when nothing changes
                             event_info_variable = event.event_info[0]
-                            event_info_variable.updated_at = datetime.now() - timedelta(hours=4)
+                            event_info_variable.updated_at = datetime.now() - timedelta(hours=5)
                             event_data.append(event.event_info[0].to_dict())
                         else:
                             # patch entry with new info
@@ -342,7 +342,7 @@ def fetch_stubhub_data(events):
                                 event_info_variable.formatted_date = complete_formatted_date
                                 event_info_variable.sortable_date = non_formatted_datetime
                                 event_info_variable.link = new_link
-                                event_info_variable.updated_at = datetime.now() - timedelta(hours=4)
+                                event_info_variable.updated_at = datetime.now() - timedelta(hours=5)
 
                                 # update the average using floats
                                 new_count = float(event.event_info[0].average_denominator + 1)
@@ -393,7 +393,7 @@ def fetch_stubhub_data_with_dates(events, start_date = None, end_date = None):
         return {"error": f"Couldn't fetch events"}, 404
 
     res = []
-    current_time = datetime.now() - timedelta(hours=4)
+    current_time = datetime.now() - timedelta(hours=5)
     
     for event in events:
         # Skip closed events
