@@ -93,6 +93,7 @@ class Event (db.Model, SerializerMixin):
     category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
     image = db.Column(db.String, nullable=True)
     closed = db.Column(db.Boolean, default=False)
+    # description = db.Column(db.String, nullable=True)
 
     event_alerts = db.relationship("Event_Alert", back_populates="event")
     event_info = db.relationship("Event_Info", back_populates="event")
@@ -135,5 +136,17 @@ class Venue (db.Model, SerializerMixin):
     latitude = db.Column(db.String)
     longitude = db.Column(db.String)
     seatplan_url = db.Column(db.String, nullable=True)
+    region_id = db.Column(db.Integer, db.ForeignKey("region.id"))
 
     event = db.relationship("Event", back_populates="venue")
+    region = db.relationship("Region", back_populates="venue")
+
+class Region (db.Model, SerializerMixin):
+    __tablename__ = "region"
+
+    serialize_rules = ["-event.region"]
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+    venue = db.relationship("Venue", back_populates="region")
