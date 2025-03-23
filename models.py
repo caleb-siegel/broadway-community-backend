@@ -144,7 +144,7 @@ class Venue (db.Model, SerializerMixin):
 class Region (db.Model, SerializerMixin):
     __tablename__ = "region"
 
-    serialize_rules = ["-event.region"]
+    serialize_rules = ["-venue.region"]
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
