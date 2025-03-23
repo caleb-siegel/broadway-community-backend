@@ -128,7 +128,7 @@ class Event_Info (db.Model, SerializerMixin):
 class Venue (db.Model, SerializerMixin):
     __tablename__ = "venue"
 
-    serialize_rules = ["-event.venue", "-event.region"]
+    serialize_rules = ["-event.venue", "-region.venue"]
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
