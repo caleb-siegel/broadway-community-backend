@@ -179,6 +179,8 @@ def get_events():
         events = []
         for event in Event.query.all():
             event_dict = event.to_dict()
+            event_dict.pop('event_alerts', None)
+            event_dict['category'].pop('category_alerts', None)
             events.append(event_dict)
 
         response = make_response(events,200)
@@ -384,7 +386,14 @@ def get_category_names():
 @app.route('/api/categories/<string:name>', methods=['GET', 'POST'])
 def get_category_by_name(name):
     category = db.session.query(Category).filter_by(name=name).first()
-    return category.to_dict()
+    category_dict = category.to_dict()
+    category_dict.pop('category_alerts', None)
+    
+    if 'event' in category_dict and isinstance(category_dict['event'], list):
+        for event in category_dict['event']:
+            event.pop('event_alerts', None)  # Remove 'event_alerts' from each event dict
+
+    return category_dict
 
 @app.route('/api/fetch_tickets', methods=['POST'])
 def refresh_stubhub_data():
