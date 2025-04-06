@@ -2,7 +2,7 @@ import os
 import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from models import Token, Event_Info, Event_Alert, Category_Alert, Event
+from models import Token, Event_Info, Event_Alert, Category_Alert, Event, Venue, Region
 from db import db
 import sendgrid
 from sendgrid.helpers.mail import Mail
@@ -31,48 +31,51 @@ twilio_auth_token = os.getenv('TWILIO_AUTH_TOKEN')
 def alert_notification(old_price, current_price, name, alerts, event_info):
     if alerts:
         for alert in alerts:
-            alert_price = alert.price
-            if (current_price * 1.32) <= alert_price and (old_price is None or current_price < old_price):
-                if alert.send_email:
-                    message = Mail(
-                        from_email='broadway.comms@gmail.com',
-                        to_emails=alert.user.email,
-                        subject=f'Price Alert: {name} ${math.ceil(current_price * 1.32)}',
-                        html_content=f"""
-                <strong>{name}</strong> is selling at <strong>~${math.ceil(current_price * 1.32)}</strong>. It was previously selling for ${math.ceil(old_price * 1.32)} and you requested to be notified if it dropped below ${alert_price}.<br><br>
-                
-                This show is on {event_info.formatted_date}.<br><br>
-                
-                <a href="{event_info.link}">Buy the tickets here</a><br><br>
-                
-                <em>Remember that these prices estimate the fees so the actual price might be slightly different than the prices shown.</em>
-            """
-                    )
-                    try:
-                        sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
-                        response = sg.send(message)
-                        print(response.status_code)
-                    except Exception as e:
-                        print(e)
+            if alert.price:
+                alert_price = alert.price
+                print(f'alert price is {type(alert_price)}')
+                print(f'current price is {type(current_price)}')
+                if (current_price * 1.32) <= alert_price and (old_price is None or current_price < old_price):
+                    if alert.send_email:
+                        message = Mail(
+                            from_email='broadway.comms@gmail.com',
+                            to_emails=alert.user.email,
+                            subject=f'Price Alert: {name} ${math.ceil(current_price * 1.32)}',
+                            html_content=f"""
+                    <strong>{name}</strong> is selling at <strong>~${math.ceil(current_price * 1.32)}</strong>. It was previously selling for ${math.ceil(old_price * 1.32)} and you requested to be notified if it dropped below ${alert_price}.<br><br>
+                    
+                    This show is on {event_info.formatted_date}.<br><br>
+                    
+                    <a href="{event_info.link}">Buy the tickets here</a><br><br>
+                    
+                    <em>Remember that these prices estimate the fees so the actual price might be slightly different than the prices shown.</em>
+                """
+                        )
+                        try:
+                            sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+                            response = sg.send(message)
+                            print(response.status_code)
+                        except Exception as e:
+                            print(e)
 
-                # if alert.send_sms:
-                #     print(f"Sending SMS for {name} to {alert.user.phone_number}")
-                #     # send sms
-                #     account_sid = twilio_account_sid
-                #     auth_token = twilio_auth_token
-                #     client = Client(account_sid, auth_token)
+                    # if alert.send_sms:
+                    #     print(f"Sending SMS for {name} to {alert.user.phone_number}")
+                    #     # send sms
+                    #     account_sid = twilio_account_sid
+                    #     auth_token = twilio_auth_token
+                    #     client = Client(account_sid, auth_token)
 
-                #     message = client.messages.create(
-                #         from_='+18557291366',
-                #         to = f'+1{alert.user.phone_number}',
-                #         body=(
-                #             f"{name}: {current_price}\n"
-                #             f"{event_info.formatted_date}\n"
-                #             f"Buy the tickets here: {event_info.link}"
-                #         ),
-                #     )
+                    #     message = client.messages.create(
+                    #         from_='+18557291366',
+                    #         to = f'+1{alert.user.phone_number}',
+                    #         body=(
+                    #             f"{name}: {current_price}\n"
+                    #             f"{event_info.formatted_date}\n"
+                    #             f"Buy the tickets here: {event_info.link}"
+                    #         ),
+                    #     )
 
-                #     print(f"Message sent with SID: {message.sid}")
+                    #     print(f"Message sent with SID: {message.sid}")
 
 
 ############# Retrieving Stubhub Data #############
@@ -520,3 +523,56 @@ def add_tracked_event(stubhub_link):
         }
     except Exception as e:
         raise ValueError("Event not found")
+
+def prices_by_region(region):
+    # Get all venues in a region
+    venues = Venue.query.filter(
+        Venue.region.has(Region.name == region),
+    ).all()
+    
+    for venue in venues:
+        token = get_stubhub_token("4XWc10UmncVBoHo3lT8b", "sfwKjMe6h1cApxw1Ca7ZKTsaoa2gSRov5ECYkM2pVXEvAUW0Ux0KViQZwWfI")
+        if not venues:
+            return {"error": f"Couldn't fetch venues"}, 404
+
+        res = []
+        # current_time = datetime.now() - timedelta(hours=5)
+        endpoint = "https://api.stubhub.net/catalog/events/search?exclude_parking_passes=true&q=" + venue.name
+        events_data = get_broadway_tickets(token, endpoint)
+        
+        if not events_data["_embedded"]["items"]:
+            continue
+        else:
+            cheapest_ticket = find_cheapest_ticket(events_data)
+            
+            if cheapest_ticket is not None:
+                start_date_var = cheapest_ticket["start_date"]
+                non_formatted_datetime = datetime.strptime(start_date_var, "%Y-%m-%dT%H:%M:%S%z")
+                formatted_date = non_formatted_datetime.strftime("%a, %b %-d, %Y %-I%p")
+                complete_formatted_date = formatted_date[:-2] + formatted_date[-2:].lower()
+                
+                # Calculate current price
+                current_price = round(cheapest_ticket["min_ticket_price"]["amount"])
+                
+                cheapest_event_info = {
+                    # "event_info": [
+                    #     {
+                    #         "name": cheapest_ticket["name"],
+                    #         "price": current_price,
+                    #         "formatted_date": complete_formatted_date,
+                    #         "link": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
+                    #         "event_date": non_formatted_datetime.strftime("%Y-%m-%d")
+                    #     }
+                    # ],
+                    # "id": event.id,
+                    "name": cheapest_ticket["name"],
+                    "price": current_price,
+                    # "category_id": event.category_id,
+                    # "image": event.image,
+                    "venue": venue.name,
+                    # "link": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
+                    # "venue": venue.to_dict() if venue else None
+                    }            
+                print(cheapest_event_info)
+                res.append(cheapest_event_info)
+    return res
