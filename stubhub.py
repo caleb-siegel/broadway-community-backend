@@ -33,22 +33,23 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
         for alert in alerts:
             if alert.price:
                 alert_price = alert.price
+                average = round(((current_price / event_info.average_lowest_price) - 1) * 100)
                 print(f'alert price is {type(alert_price)}')
                 print(f'current price is {type(current_price)}')
-                if (current_price * 1.32) <= alert_price and (old_price is None or current_price < old_price):
+                if (current_price) <= alert_price and (old_price is None or current_price < old_price):
                     if alert.send_email:
                         message = Mail(
                             from_email='broadway.comms@gmail.com',
                             to_emails=alert.user.email,
-                            subject=f'Price Alert: {name} ${math.ceil(current_price * 1.32)}',
+                            subject=f'Price Alert: {name} ${current_price}',
                             html_content=f"""
-                    <strong>{name}</strong> is selling at <strong>~${math.ceil(current_price * 1.32)}</strong>. It was previously selling for ${math.ceil(old_price * 1.32)} and you requested to be notified if it dropped below ${alert_price}.<br><br>
+                    <strong>{name}</strong> is selling at <strong>~${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${alert_price}.<br><br>
                     
+                    This is {abs(average)}% {'cheaper' if average < 0 else 'higher'} than what you can normally get this show for at Stubhub.<br><br>
                     This show is on {event_info.formatted_date}.<br><br>
                     
                     <a href="{event_info.link}">Buy the tickets here</a><br><br>
                     
-                    <em>Remember that these prices estimate the fees so the actual price might be slightly different than the prices shown.</em>
                 """
                         )
                         try:
