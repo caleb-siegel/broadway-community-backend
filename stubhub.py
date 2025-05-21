@@ -35,20 +35,20 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                 alert_price = alert.price
                 print(f'alert price is {type(alert_price)}')
                 print(f'current price is {type(current_price)}')
-                if (current_price) <= alert_price and (old_price is None or current_price < old_price):
+                if (current_price * 1.32) <= alert_price and (old_price is None or current_price < old_price):
                     if alert.send_email:
                         message = Mail(
                             from_email='broadway.comms@gmail.com',
                             to_emails=alert.user.email,
-                            subject=f'Price Alert: {name} ${current_price}',
+                            subject=f'Price Alert: {name} ${math.ceil(current_price * 1.32)}',
                             html_content=f"""
-                    <strong>{name}</strong> is selling at <strong>~${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${alert_price}.<br><br>
+                    <strong>{name}</strong> is selling at <strong>~${math.ceil(current_price * 1.32)}</strong>. It was previously selling for ${math.ceil(old_price * 1.32)} and you requested to be notified if it dropped below ${alert_price}.<br><br>
                     
                     This show is on {event_info.formatted_date}.<br><br>
                     
                     <a href="{event_info.link}">Buy the tickets here</a><br><br>
                     
-
+                    <em>Remember that these prices estimate the fees so the actual price might be slightly different than the prices shown.</em>
                 """
                         )
                         try:
@@ -321,8 +321,8 @@ def fetch_stubhub_data(events):
 
                 else:
                     try:
-                        old_price = float(event.event_info[0].price)
-                        new_price = float(round(cheapest_ticket["min_ticket_price"]["amount"]))
+                        old_price = event.event_info[0].price
+                        new_price = round(cheapest_ticket["min_ticket_price"]["amount"])
                         old_formatted_date = event.event_info[0].formatted_date
                         old_link = event.event_info[0].link
                         new_link = partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"]
@@ -347,16 +347,16 @@ def fetch_stubhub_data(events):
                                 event_info_variable.link = new_link
                                 event_info_variable.updated_at = datetime.now() - timedelta(hours=5)
 
-                                # update the average using floats
-                                new_count = float(event.event_info[0].average_denominator + 1)
-                                old_average = float(event.event_info[0].average_lowest_price)
+                                # update the average
+                                new_count = event.event_info[0].average_denominator + 1
+                                old_average = event.event_info[0].average_lowest_price
                                 try:
                                     average = ((old_average * (new_count - 1)) + new_price) / new_count
                                 except Exception as e:
                                     logger.error(f"Failed to calculate average price for {event.name} (ID: {event.id}). Values: old_avg={old_average}, new_count={new_count}, new_price={new_price}. Error: {str(e)}")
                                     raise
                                 event_info_variable.average_denominator = int(new_count)
-                                event_info_variable.average_lowest_price = float(average)
+                                event_info_variable.average_lowest_price = average
 
                                 logger.info(f"Updated {event.name}: Price ${old_price} -> ${new_price}")
                                 event_data.append(event_info_variable.to_dict())
