@@ -35,20 +35,20 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                 alert_price = alert.price
                 print(f'alert price is {type(alert_price)}')
                 print(f'current price is {type(current_price)}')
-                if (current_price * 1.32) <= alert_price and (old_price is None or current_price < old_price):
+                if (current_price) <= alert_price and (old_price is None or current_price < old_price):
                     if alert.send_email:
                         message = Mail(
                             from_email='broadway.comms@gmail.com',
                             to_emails=alert.user.email,
-                            subject=f'Price Alert: {name} ${math.ceil(current_price * 1.32)}',
+                            subject=f'Price Alert: {name} ${current_price}',
                             html_content=f"""
-                    <strong>{name}</strong> is selling at <strong>~${math.ceil(current_price * 1.32)}</strong>. It was previously selling for ${math.ceil(old_price * 1.32)} and you requested to be notified if it dropped below ${alert_price}.<br><br>
+                    <strong>{name}</strong> is selling at <strong>~${current_price}</strong>. It was previously selling for ${old_price} and you requested to be notified if it dropped below ${alert_price}.<br><br>
                     
                     This show is on {event_info.formatted_date}.<br><br>
                     
                     <a href="{event_info.link}">Buy the tickets here</a><br><br>
                     
-                    <em>Remember that these prices estimate the fees so the actual price might be slightly different than the prices shown.</em>
+
                 """
                         )
                         try:
@@ -530,12 +530,18 @@ def prices_by_region(region):
         Venue.region.has(Region.name == region),
     ).all()
     
+    print(venues)
+    
+    token = get_stubhub_token("4XWc10UmncVBoHo3lT8b", "sfwKjMe6h1cApxw1Ca7ZKTsaoa2gSRov5ECYkM2pVXEvAUW0Ux0KViQZwWfI")
+    
+    res = []
+    
     for venue in venues:
-        token = get_stubhub_token("4XWc10UmncVBoHo3lT8b", "sfwKjMe6h1cApxw1Ca7ZKTsaoa2gSRov5ECYkM2pVXEvAUW0Ux0KViQZwWfI")
+        
         if not venues:
             return {"error": f"Couldn't fetch venues"}, 404
 
-        res = []
+        
         # current_time = datetime.now() - timedelta(hours=5)
         endpoint = "https://api.stubhub.net/catalog/events/search?exclude_parking_passes=true&q=" + venue.name
         events_data = get_broadway_tickets(token, endpoint)
@@ -570,9 +576,10 @@ def prices_by_region(region):
                     # "category_id": event.category_id,
                     # "image": event.image,
                     "venue": venue.name,
-                    # "link": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
+                    "formatted_date": complete_formatted_date,
+                    "link": partnerize_tracking_link + cheapest_ticket["_links"]["event:webpage"]["href"],
                     # "venue": venue.to_dict() if venue else None
                     }            
-                print(cheapest_event_info)
+                # print(cheapest_event_info)
                 res.append(cheapest_event_info)
     return res
