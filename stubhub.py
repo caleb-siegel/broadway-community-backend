@@ -55,26 +55,25 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                         try:
                             sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
                             response = sg.send(message)
-                            print(response.status_code)
-                            # if user is xxx, send whatsapp message to caleb through callmebot
-                            print("checking if alert is for bcom user")
-                            if alert.user.id == 31: #broadway comms user
-                                print("preparing message to bcom user")
-                                whatsapp_msg = (
-                                    f"🎭 {name}\n"
-                                    f"${current_price} (down from ${old_price})\n"
-                                    f"{abs(average)}% {'below' if average < 0 else 'more expensive than'} avg\n"
-                                    f"{event_info.formatted_date}\n"
-                                    f"{event_info.link}"
-                                )
-                                send_whatsapp_message(
-                                    phone_number="+15514867067",  # your number
-                                    api_key=os.getenv('CALL_ME_BOT_API_KEY'),
-                                    message=whatsapp_msg
-                                )
+                            print(f'response: {response.status_code}')
                         except Exception as e:
                             print(e)
-
+                    # if user is xxx, send whatsapp message to caleb through callmebot
+                        print("checking if alert is for bcom user")
+                        if alert.user.id == 31: #broadway comms user
+                            print("preparing message to bcom user")
+                            whatsapp_msg = (
+                                f"🎭 {name}\n"
+                                f"${current_price} (down from ${old_price})\n"
+                                f"{abs(average)}% {'below' if average < 0 else 'more expensive than'} avg\n"
+                                f"{event_info.formatted_date}\n"
+                                f"{event_info.link}"
+                            )
+                            send_whatsapp_message(
+                                phone_number="+15514867067",  # your number
+                                api_key=os.getenv('CALL_ME_BOT_API_KEY'),
+                                message=whatsapp_msg
+                            )
                     # if alert.send_sms:
                     #     print(f"Sending SMS for {name} to {alert.user.phone_number}")
                     #     # send sms
