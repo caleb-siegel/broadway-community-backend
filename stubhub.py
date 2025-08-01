@@ -64,8 +64,8 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                             print("preparing message to bcom user")
                             whatsapp_msg = (
                                 f"🎭 {name}\n"
-                                f"${current_price} (down from ${old_price})\n"
-                                f"{abs(average)}% {'below' if average < 0 else 'more expensive than'} avg\n"
+                                f"${current_price}\n"
+                                f"{abs(average)}% {'below' if average < 0 else 'more expensive than'} stubhub's average lowest selling price of {round(event_info.average_lowest_price)}\n"
                                 f"{event_info.formatted_date}\n"
                                 f"{event_info.link}"
                             )
