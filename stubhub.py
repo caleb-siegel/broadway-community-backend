@@ -61,12 +61,12 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                     # if user is xxx, send whatsapp message to caleb through callmebot
                         print("checking if alert is for bcom user")
                         if alert.user.id == 31: #broadway comms user
+                            discount_message = "" if average >= 0 else f"({abs(average)}% discount)"
                             print("preparing message to bcom user")
                             whatsapp_msg = (
                                 f"🎭 {name}\n"
                                 f"${current_price}\n"
-                                f"Generally sells as low as ${round(event_info.average_lowest_price)} ({abs(average)% 'discount' if average < 0 else ''})\n"
-                                f"{}\n"
+                                f"Generally sells as low as ${round(event_info.average_lowest_price)} {discount_message}\n"
                                 f"{event_info.formatted_date}\n"
                                 f"{event_info.link}"
                             )
