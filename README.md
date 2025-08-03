@@ -15,5 +15,7 @@
 - run flask db upgrade
 
 ## to add images
+- go to todaytix; go to the page for the show and find the category id in the url
+- manually add the id to the database for the todaytix category id
 - run pipenv shell to activate the local environment
 - run python update_images.py

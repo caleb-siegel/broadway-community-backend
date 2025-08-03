@@ -13,7 +13,7 @@ import os
 from db import db, app
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, fetch_stubhub_data_with_dates, add_tracked_event, find_event_id
+from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, fetch_stubhub_data_with_dates, add_tracked_event, find_event_id, prices_by_region
 from todaytix import todaytix_fetch
 import pytz
 
@@ -625,6 +625,64 @@ def check_existing_events():
         return jsonify(result), 200
 
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/fetch_tickets_venues/<string:region>')
+def fetch_prices_by_region(region):
+    try:
+        data = prices_by_region(region)
+
+        sorted_data = sorted(data, key=lambda x: x['price'])
+        
+        response = make_response(sorted_data,200)
+        return response
+    except Exception as e:
+        return {"error": str(e)}, 500
+    
+@app.route('/api/search', methods=['POST'])
+def search_events():
+    try:
+        # Get search parameters from the request body
+        data = request.json
+        search_term = data.get('searchTerm', '').lower()
+        start_date = data.get('startDate')
+        end_date = data.get('endDate')
+        category = data.get('category', 'all')
+
+        # Query events from the database
+        query = db.session.query(Event).join(Event_Info)
+
+        # Filter by category if specified
+        if category != 'all':
+            query = query.join(Category).filter(Category.name.ilike(category))
+
+        # Filter by search term
+        if search_term:
+            query = query.filter(
+                Event.name.ilike(f"%{search_term}%") |
+                Event_Info.name.ilike(f"%{search_term}%")
+            )
+
+        # Filter by date range
+        if start_date:
+            query = query.filter(Event_Info.event_date >= start_date)
+        if end_date:
+            query = query.filter(Event_Info.event_date <= end_date)
+
+        # Fetch results
+        events = query.all()
+
+        # Convert results to dictionaries
+        results = []
+        for event in events:
+            event_dict = event.to_dict()
+            event_dict.pop('event_alerts', None)  # Remove unnecessary fields
+            results.append(event_dict)
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        print(f"Error in search_events: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":

@@ -1,4 +1,6 @@
 import requests
+from db import db
+from models import Event
 
 ids = [23379, 37219, 41018, 38749, 26018, 13709, 34895, 31936, 14748, 37579, 384, 1]
 
@@ -27,9 +29,11 @@ def todaytix_fetch(id):
         response = requests.get(url, headers=headers)
 
         # today_tix_price = data["data"]["fromPrice"]["value"]
-    
+        print(response.json()["data"]["runTimeAndIntermission"])
         if response.status_code == 200:
             return response.json()
         else:
             print(f'Failed to fetch tickets from {url}: {response.status_code}, {response.text}')
             return None
+
+# todaytix_fetch(384)
