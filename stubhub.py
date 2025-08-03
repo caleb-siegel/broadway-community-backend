@@ -65,7 +65,8 @@ def alert_notification(old_price, current_price, name, alerts, event_info):
                             whatsapp_msg = (
                                 f"🎭 {name}\n"
                                 f"${current_price}\n"
-                                f"{abs(average)}% {'below' if average < 0 else 'more expensive than'} stubhub's average lowest selling price of {round(event_info.average_lowest_price)}\n"
+                                f"$Generally sells as low as ${round(event_info.average_lowest_price)}\n"
+                                f"{abs(average)}% {'discount' if average < 0 else ''}\n"
                                 f"{event_info.formatted_date}\n"
                                 f"{event_info.link}"
                             )
