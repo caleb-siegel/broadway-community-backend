@@ -2,7 +2,7 @@ from flask import Flask, make_response, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
-from flask_session import Session
+# from flask_session import Session
 from dotenv import dotenv_values, load_dotenv
 from flask_bcrypt import Bcrypt
 from flask_session import Session
@@ -24,42 +24,36 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 google_client_id = os.getenv('GOOGLE_CLIENT_SECRET')
 
 # Enable CORS
-CORS(app, 
-    supports_credentials=True, 
-    resources={r"/api/*": {
-        "origins": [
-            "http://localhost:5174", 
-            "http://localhost:5173", 
-            "http://127.0.0.1:5173",
-            "http://192.168.1.174:5173",
-            "https://broadwaycommunity.vercel.app", 
-            "http://192.168.1.174:5173",
-            "http://127.0.0.1:5000"
-        ],        
-        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Accept", "Authorization", "Origin"],
-        "supports_credentials": True,
-    }},
-)
+app.config['CORS_SUPPORTS_CREDENTIALS'] = True
+app.config['CORS_HEADERS'] = ['Content-Type', 'Accept', 'Authorization', 'Origin']
+app.config['CORS_RESOURCES'] = {r"/api/*": {"origins": [
+    "http://localhost:5174", 
+    "http://localhost:5173", 
+    "http://127.0.0.1:5173",
+    "http://192.168.1.174:5173",
+    "https://broadwaycommunity.vercel.app"
+]}}
+
+CORS(app)
 
 # Configure Redis for sessions
-app.config["SESSION_TYPE"] = "redis"  # Use Redis as the session store
-app.config["SESSION_PERMANENT"] = True
-app.config["SESSION_USE_SIGNER"] = True  # Adds a layer of security to cookies
-app.config["SESSION_KEY_PREFIX"] = "flask-session:"  # Prefix for keys in Redis
-app.config["SESSION_REDIS"] = Redis(
-    host=os.getenv('REDIS_HOST'), 
-    port=int(os.getenv('REDIS_PORT')),  # Use environment variable or default port 6379
-    password=os.getenv('REDIS_PASSWORD'),  # Make sure to set this in your environment
-    ssl=True
-)
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config["SESSION_COOKIE_SECURE"] = True
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+# app.config["SESSION_TYPE"] = "redis"  # Use Redis as the session store
+# app.config["SESSION_PERMANENT"] = True
+# app.config["SESSION_USE_SIGNER"] = True  # Adds a layer of security to cookies
+# app.config["SESSION_KEY_PREFIX"] = "flask-session:"  # Prefix for keys in Redis
+# app.config["SESSION_REDIS"] = Redis(
+#     host=os.getenv('REDIS_HOST'), 
+#     port=int(os.getenv('REDIS_PORT')),  # Use environment variable or default port 6379
+#     password=os.getenv('REDIS_PASSWORD'),  # Make sure to set this in your environment
+#     ssl=True
+# )
+# app.config["SESSION_COOKIE_SAMESITE"] = "None"
+# # app.config['SESSION_COOKIE_HTTPONLY'] = True
+# # app.config["SESSION_COOKIE_SECURE"] = True
+# app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
 # Initialize Flask-Session
-Session(app)
+# Session(app)
 
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
