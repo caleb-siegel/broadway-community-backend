@@ -235,6 +235,14 @@ def get_event(id):
             return {"error": f"event with id {id} not found"}, 404
         return event_id.to_dict()
 
+@app.route('/api/events/<string:name>', methods=['GET'])
+def get_event_by_name(name):
+    if request.method == 'GET':
+        event_entry = Event.query.filter_by(name=name).first()
+        if not event_entry:
+            return {"error": f"Event with name '{name}' not found"}, 404
+        return event_entry.to_dict()
+
 @app.route('/api/event_alerts', methods=['GET', 'POST'])
 def get_event_alerts():
     if request.method == 'GET':
@@ -249,21 +257,21 @@ def get_event_alerts():
 
     elif request.method == 'POST':
         event_name=request.json.get("event_name")
-
+        
         event = Event.query.filter(Event.name == event_name).first()
-
+        
 
         new_alert = Event_Alert(
             user_id=request.json.get("user_id"),
-            event_id=event.id,
-            price=request.json.get("price"),
-            # start_date=request.json.get("start_date"),
-            # end_date=request.json.get("end_date"),
-            # show_time=request.json.get("show_time"),
-            send_email=request.json.get("send_email"),
-            send_sms=request.json.get("send_sms"),
-            send_push=request.json.get("send_push"),
+            event_id=request.json.get("event_id"),
+            price_number=request.json.get("price_number"),
+            price_percent=request.json.get("price_percent"),
+            start_date=request.json.get("start_date"),
+            end_date=request.json.get("end_date"),
+            show_time=request.json.get("show_time"),
+            notification_method=request.json.get("notification_method")
         )
+        print(new_alert.to_dict())
 
         db.session.add(new_alert)
         db.session.commit()
@@ -288,7 +296,21 @@ def edit_event_alerts(id):
     elif request.method == 'PATCH':
         try:
             data = request.json
-            setattr(alert, 'price', data['price'])
+            
+            # Update all the new fields
+            if 'price_number' in data:
+                alert.price_number = data['price_number']
+            if 'price_percent' in data:
+                alert.price_percent = data['price_percent']
+            if 'start_date' in data:
+                alert.start_date = data['start_date']
+            if 'end_date' in data:
+                alert.end_date = data['end_date']
+            if 'show_time' in data:
+                alert.show_time = data['show_time']
+            if 'notification_method' in data:
+                alert.notification_method = data['notification_method']
+            
             db.session.add(alert)
             db.session.commit()
             return alert.to_dict(), 200
@@ -314,14 +336,13 @@ def get_category_alerts():
 
         new_alert = Category_Alert(
             user_id=request.json.get("user_id"),
-            category_id=category.id,
-            price=request.json.get("price"),
-            # start_date=request.json.get("start_date"),
-            # end_date=request.json.get("end_date"),
-            # show_time=request.json.get("show_time"),
-            send_email=request.json.get("send_email"),
-            send_sms=request.json.get("send_sms"),
-            send_push=request.json.get("send_push"),
+            category_id=request.json.get("category_id"),
+            price_number=request.json.get("price_number"),
+            price_percent=request.json.get("price_percent"),
+            start_date=request.json.get("start_date"),
+            end_date=request.json.get("end_date"),
+            show_time=request.json.get("show_time"),
+            notification_method=request.json.get("notification_method")
         )
 
         db.session.add(new_alert)
@@ -347,7 +368,21 @@ def edit_category_alerts(id):
     elif request.method == 'PATCH':
         try:
             data = request.json
-            setattr(alert, 'price', data['price'])
+            
+            # Update all the new fields
+            if 'price_number' in data:
+                alert.price_number = data['price_number']
+            if 'price_percent' in data:
+                alert.price_percent = data['price_percent']
+            if 'start_date' in data:
+                alert.start_date = data['start_date']
+            if 'end_date' in data:
+                alert.end_date = data['end_date']
+            if 'show_time' in data:
+                alert.show_time = data['show_time']
+            if 'notification_method' in data:
+                alert.notification_method = data['notification_method']
+            
             db.session.add(alert)
             db.session.commit()
             return alert.to_dict(), 200
