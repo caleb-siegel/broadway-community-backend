@@ -235,7 +235,7 @@ def get_event(id):
             return {"error": f"event with id {id} not found"}, 404
         return event_id.to_dict()
 
-@app.route('/api/events/<string:name>', methods=['GET'])
+@app.route('/api/events/name/<string:name>', methods=['GET'])
 def get_event_by_name(name):
     if request.method == 'GET':
         event_entry = Event.query.filter_by(name=name).first()
