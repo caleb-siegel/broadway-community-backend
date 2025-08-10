@@ -269,7 +269,8 @@ def get_event_alerts():
             start_date=request.json.get("start_date"),
             end_date=request.json.get("end_date"),
             show_time=request.json.get("show_time"),
-            notification_method=request.json.get("notification_method")
+            notification_method=request.json.get("notification_method"),
+            weekday=request.json.get("weekday")
         )
         print(new_alert.to_dict())
 
@@ -310,6 +311,8 @@ def edit_event_alerts(id):
                 alert.show_time = data['show_time']
             if 'notification_method' in data:
                 alert.notification_method = data['notification_method']
+            if 'weekday' in data:
+                alert.weekday = data['weekday']
             
             db.session.add(alert)
             db.session.commit()
@@ -342,7 +345,8 @@ def get_category_alerts():
             start_date=request.json.get("start_date"),
             end_date=request.json.get("end_date"),
             show_time=request.json.get("show_time"),
-            notification_method=request.json.get("notification_method")
+            notification_method=request.json.get("notification_method"),
+            weekday=request.json.get("weekday")
         )
 
         db.session.add(new_alert)
@@ -382,6 +386,8 @@ def edit_category_alerts(id):
                 alert.show_time = data['show_time']
             if 'notification_method' in data:
                 alert.notification_method = data['notification_method']
+            if 'weekday' in data:
+                alert.weekday = data['weekday']
             
             db.session.add(alert)
             db.session.commit()

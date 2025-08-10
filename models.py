@@ -6,6 +6,11 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy_serializer import SerializerMixin
 import string
 from datetime import date, time
+try:
+    from sqlalchemy.dialects.postgresql import ARRAY
+except ImportError:
+    # Fallback for non-PostgreSQL databases
+    ARRAY = None
 
 class User (db.Model, SerializerMixin):
     __tablename__ = "user"
@@ -47,6 +52,7 @@ class Event_Alert (db.Model, SerializerMixin):
     ticket_quantity = db.Column(db.String, nullable=True)
     ticket_note = db.Column(db.String, nullable=True)
     notification_method = db.Column(db.String, nullable=False)
+    weekday = db.Column(ARRAY(db.Integer) if ARRAY else db.Text, nullable=True)
     created_on = db.Column(db.Date, default=date.today, nullable=True)
     
     user = db.relationship("User", back_populates="event_alerts")
@@ -70,6 +76,7 @@ class Category_Alert (db.Model, SerializerMixin):
     ticket_quantity = db.Column(db.String, nullable=True)
     ticket_note = db.Column(db.String, nullable=True)
     notification_method = db.Column(db.String, nullable=False)
+    weekday = db.Column(ARRAY(db.Integer) if ARRAY else db.Text, nullable=True)
     created_on = db.Column(db.Date, default=date.today, nullable=True)
 
     user = db.relationship("User", back_populates="category_alerts")

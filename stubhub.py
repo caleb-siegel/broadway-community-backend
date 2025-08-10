@@ -14,6 +14,7 @@ import logging
 import pytz
 from decimal import Decimal
 import math
+from notifications import alert_notification_new
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -338,8 +339,10 @@ def fetch_stubhub_data(events):
                         logger.info(f"Added new event info for {new_event_info.name}")
                         event_data.append(new_event_info.to_dict())
                         
-                        alert_notification(old_price, new_event_info.price, event.name, event.event_alerts, new_event_info)
-                        alert_notification(old_price, new_event_info.price, event.name, event.category.category_alerts, new_event_info)
+                        if event.event_alerts:
+                            alert_notification(old_price, new_event_info.price, event.name, event.event_alerts, new_event_info)
+                        if event.category.category_alerts:
+                            alert_notification(old_price, new_event_info.price, event.name, event.category.category_alerts, new_event_info)
                         
                     except Exception as e:
                         logger.error(f"Failed to create new event info for {event.name} (ID: {event.id}): {str(e)}")
@@ -388,8 +391,10 @@ def fetch_stubhub_data(events):
                                 logger.info(f"Updated {event.name}: Price ${old_price} -> ${new_price}")
                                 event_data.append(event_info_variable.to_dict())
                                 
-                                alert_notification(old_price, event_info_variable.price, event.name, event.event_alerts, event_info_variable)
-                                alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
+                                if event.event_alerts:
+                                    alert_notification(old_price, event_info_variable.price, event.name, event.event_alerts, event_info_variable)
+                                if event.category.category_alerts:
+                                    alert_notification(old_price, event_info_variable.price, event.name, event.category.category_alerts, event_info_variable)
                             except Exception as e:
                                 logger.error(f"Failed to update event info fields for {event.name} (ID: {event.id}): {str(e)}")
                                 raise
