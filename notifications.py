@@ -4,13 +4,13 @@ def alert_notification_new(old_price, current_price, name, alerts, event_info):
         send_notification = check_alert_conditions(alert, current_price, event_info)
 
         if send_notification:
-            discount = round(((current_price / event_info['average_lowest_price']) - 1) * 100)
-            
-            if alert['notification_method'] == 'email':
+            discount = round(((current_price / event_info.average_lowest_price) - 1) * 100)
+
+            if alert.notification_method == 'email':
                 print(f"Sending email")
                 # send_email(alert, name, current_price, old_price, discount, event_info)
-            
-            elif alert['notification_method'] == 'sms':
+
+            elif alert.notification_method == 'sms':
                 print(f"Sending SMS")
             #     print(f"Sending SMS for {name} to {alert.user.phone_number}")
             #     # send sms
@@ -59,26 +59,26 @@ def send_whatsapp_message(phone_number, api_key, message):
         print("❌ Error sending message:", e)
 
 def check_alert_conditions(alert, current_price, event_info):
-    if alert['price_number'] and (current_price > alert['price_number']):
+    if alert.price_number and (current_price > alert.price_number):
         print("Price not low enough")
         return False
-    discount = round(((current_price / event_info['average_lowest_price']) - 1) * 100)
-    if alert['price_percent'] and (discount > (alert['price_percent'] * -1)):
+    discount = round(((current_price / event_info.average_lowest_price) - 1) * 100)
+    if alert.price_percent and (discount > (alert.price_percent * -1)):
         print("Discount not enough")
         return False
-    if alert['start_date'] and (event_info['event_date'] < alert['start_date']):
+    if alert.start_date and (event_info.event_date < alert.start_date):
         print("Event date is before alert start date")
         return False
-    if alert['end_date'] and (event_info['event_date'] > alert['end_date']):
+    if alert.end_date and (event_info.event_date > alert.end_date):
         print("Event date is after alert end date")
         return False
-    if alert['show_time'] == 'Matinee' and not (event_info['event_time'] >= '12:00:00' and event_info['event_time'] < '16:00:00'):
+    if alert.show_time == 'Matinee' and not (event_info.event_time >= '12:00:00' and event_info.event_time < '16:00:00'):
         print("Event time is not during Matinee")
         return False
-    if alert['show_time'] == 'Evening' and not (event_info['event_time'] >= '16:00:00'):
+    if alert.show_time == 'Evening' and not (event_info.event_time >= '16:00:00'):
         print("Event time is not during Evening")
         return False
-    if alert['weekday'] and event_info['event_weekday'] is not None and event_info['event_weekday'] not in alert['weekday']:
+    if alert.weekday and event_info.event_weekday is not None and event_info.event_weekday not in alert.weekday:
         print("Event weekday is not in alert weekday list")
         return False
     return True
@@ -105,11 +105,11 @@ def send_email(alert, name, current_price, old_price, discount, event_info):
     except Exception as e:
         print(e)
 
-alert_notification_new(
-    100,
-    60,
-    "Hamilton",
-    [
+testData = {
+    "old_price": 100,
+    "current_price": 60,
+    "name": "Hamilton",
+    "alerts": [
         {
             "price_number": None,
             "price_percent": 30,
@@ -124,7 +124,7 @@ alert_notification_new(
             }
         }
     ],
-    {
+    "event_info": {
         "average_lowest_price": 100,
         "event_date": "2025-08-13",
         "event_time": "19:30:00",
@@ -132,4 +132,6 @@ alert_notification_new(
         "formatted_date": "October 1, 2023",
         "link": "https://stubhub.com/hamilton-tickets"
     }
-)
+}
+
+# alert_notification_new(testData)
