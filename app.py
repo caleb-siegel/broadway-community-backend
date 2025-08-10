@@ -16,6 +16,7 @@ from google.auth.transport import requests
 from stubhub import get_stubhub_token, fetch_stubhub_data, get_category_link, find_cheapest_ticket, get_broadway_tickets, fetch_stubhub_data_with_dates, add_tracked_event, find_event_id
 from todaytix import todaytix_fetch
 import pytz
+from urllib.parse import unquote
 
 # Load the .env file if present (for local development)
 load_dotenv()
@@ -235,13 +236,17 @@ def get_event(id):
             return {"error": f"event with id {id} not found"}, 404
         return event_id.to_dict()
 
-@app.route('/api/events/name/<string:name>', methods=['GET'])
+@app.route('/api/events/name/<path:name>', methods=['GET'])
 def get_event_by_name(name):
-    if request.method == 'GET':
-        event_entry = Event.query.filter_by(name=name).first()
-        if not event_entry:
-            return {"error": f"Event with name '{name}' not found"}, 404
-        return event_entry.to_dict()
+    # Decode URL-encoded characters like %20
+    decoded_name = unquote(name)
+    print(f"Looking for event: {decoded_name}")
+
+    # Your existing lookup logic here
+    event = Event.query.filter_by(name=decoded_name).first()
+    if not event:
+        return {"error": f"event with name '{decoded_name}' not found"}, 404
+    return event.to_dict()
 
 @app.route('/api/event_alerts', methods=['GET', 'POST'])
 def get_event_alerts():
