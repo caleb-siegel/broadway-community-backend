@@ -30,6 +30,7 @@ twilio = "*"
 pytz = "*"
 selenium = "==4.18.1"
 webdriver-manager = "==4.0.1"
+sib-api-v3-sdk = "*"
 
 [dev-packages]
 
