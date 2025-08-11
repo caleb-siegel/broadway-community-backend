@@ -1,4 +1,11 @@
-def alert_notification_new(old_price, current_price, name, alerts, event_info):
+import os
+from sib_api_v3_sdk import Configuration, ApiClient, TransactionalEmailsApi, SendSmtpEmail
+from sib_api_v3_sdk.rest import ApiException
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def alert_notification(old_price, current_price, name, alerts, event_info):
     for alert in alerts:
         # check if alert conditions are met
         send_notification = check_alert_conditions(alert, current_price, event_info)
@@ -8,7 +15,8 @@ def alert_notification_new(old_price, current_price, name, alerts, event_info):
 
             if alert.notification_method == 'email':
                 print(f"Sending email")
-                # send_email(alert, name, current_price, old_price, discount, event_info)
+                # send_email_sendinblue_example()
+                send_email_sendinblue(alert, name, current_price, old_price, discount, event_info)
 
             elif alert.notification_method == 'sms':
                 print(f"Sending SMS")
@@ -62,6 +70,7 @@ def check_alert_conditions(alert, current_price, event_info):
     if alert.price_number and (current_price > alert.price_number):
         print("Price not low enough")
         return False
+
     discount = round(((current_price / event_info.average_lowest_price) - 1) * 100)
     if alert.price_percent and (discount > (alert.price_percent * -1)):
         print("Discount not enough")
@@ -83,7 +92,7 @@ def check_alert_conditions(alert, current_price, event_info):
         return False
     return True
 
-def send_email(alert, name, current_price, old_price, discount, event_info):
+def send_email_sendgrid(alert, name, current_price, old_price, discount, event_info):
     message = Mail(
         from_email='broadway.comms@gmail.com',
         to_emails=alert.user.email,
@@ -105,33 +114,61 @@ def send_email(alert, name, current_price, old_price, discount, event_info):
     except Exception as e:
         print(e)
 
-testData = {
-    "old_price": 100,
-    "current_price": 60,
-    "name": "Hamilton",
-    "alerts": [
-        {
-            "price_number": None,
-            "price_percent": 30,
-            "start_date": "2025-08-01",
-            "end_date": '2025-08-15',
-            "show_time": "Evening",
-            'weekday': [1,2,3],
-            "notification_method": "sms",
-            "user": {
-                "id": 31,
-                "email": "broadway.comms@gmail.com"
-            }
+
+def send_email_sendinblue(alert, name, current_price, old_price, discount, event_info):
+    # Configure API key authorization
+    configuration = Configuration()
+    configuration.api_key['api-key'] = os.getenv('SENDINBLUE_API_KEY')
+
+    api_instance = TransactionalEmailsApi(ApiClient(configuration))
+
+    html_content = f"""
+    <strong>{name}</strong> is selling at <strong>~${current_price}</strong>. 
+    It was previously selling for ${old_price}.<br><br>
+    This is {abs(discount)}% {'cheaper' if discount < 0 else 'higher'} than what you can normally get this show for at Stubhub.<br><br>
+    This show is on {event_info.formatted_date}.<br><br>
+    <a href="{event_info.link}">Buy the tickets here</a><br><br>
+    """
+
+    send_smtp_email = SendSmtpEmail(
+        to=[{"email": alert.user.email}],
+        sender={"name": "Broadway Community", "email": "broadway.comms@gmail.com"},
+        subject=f"Price Alert: {name} ${current_price}",
+        html_content=html_content
+    )
+
+    try:
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        print(f"Email sent! Message ID: {api_response.message_id}")
+    except ApiException as e:
+        print(f"Error sending email: {e}")
+
+sample_old_price = 100
+sample_current_price = 60
+sample_name = "Hamilton"
+sample_alerts = [
+    {
+        "price_number": None,
+        "price_percent": 30,
+        "start_date": "2025-08-01",
+        "end_date": '2025-08-15',
+        "show_time": "Evening",
+        'weekday': [1,2,3],
+        "notification_method": "email",
+        "user": {
+            "id": 31,
+            "email": "caleb.siegel@gmail.com"
         }
-    ],
-    "event_info": {
-        "average_lowest_price": 100,
-        "event_date": "2025-08-13",
-        "event_time": "19:30:00",
-        "event_weekday": 2,  # Tuesday (0-indexed)
-        "formatted_date": "October 1, 2023",
-        "link": "https://stubhub.com/hamilton-tickets"
     }
+]
+sample_event_info = {
+    "average_lowest_price": 100,
+    "event_date": "2025-08-13",
+    "event_time": "19:30:00",
+    "event_weekday": 2,  # Tuesday (0-indexed)
+    "formatted_date": "October 1, 2023",
+    "link": "https://stubhub.com/hamilton-tickets"
 }
 
-# alert_notification_new(testData)
+
+# alert_notification(sample_old_price, sample_current_price, sample_name, sample_alerts, sample_event_info)
