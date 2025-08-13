@@ -23,6 +23,7 @@ class User (db.Model, SerializerMixin):
     last_name = db.Column(db.String)
     email = db.Column(db.String)
     phone_number = db.Column(db.String, nullable=True)
+    sms_consent = db.Column(db.Boolean, default=False)
 
     event_alerts = db.relationship("Event_Alert", back_populates="user")
     category_alerts = db.relationship("Category_Alert", back_populates="user")

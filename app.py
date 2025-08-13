@@ -114,7 +114,8 @@ def user():
                 last_name = data.get("last_name"),
                 email = data.get("email"),
                 phone_number = data.get("phone_number"),
-                password_hash = bcrypt.generate_password_hash(data.get("password_hash")).decode('utf-8')
+                password_hash = bcrypt.generate_password_hash(data.get("password_hash")).decode('utf-8'),
+                sms_consent = bool(data.get("sms_consent"))
             )
             db.session.add(new_user)
             db.session.commit()
